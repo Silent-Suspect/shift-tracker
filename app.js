@@ -3,6 +3,10 @@ let shifts = [];
 let activeShiftId = null;
 let timerInterval = null;
 
+// KONFIGURATION
+const MIN_REST_HOURS = 10; // Stunden für grünes Häkchen bei Übergang
+const SHIFT_GAP_THRESHOLD_HOURS = 6; // Stunden Lücke für Trennlinie im Verlauf
+
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
@@ -21,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function startBlock(type) {
     const now = new Date();
     
+    // Prellschutz
     if (activeShiftId) {
         const currentBlock = shifts.find(s => s.id === activeShiftId);
         if (currentBlock && currentBlock.type === type) {
@@ -55,7 +60,7 @@ function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
-// --- Resize Edit Logic ---
+// --- Edit Logic ---
 
 function editBlock(id) {
     const block = shifts.find(s => s.id === id);
@@ -89,15 +94,18 @@ function saveEdit() {
         }
     }
 
+    // 1. Update
     shifts[blockIndex].type = type;
     shifts[blockIndex].start = newStart.toISOString();
     shifts[blockIndex].end = newEnd ? newEnd.toISOString() : null;
 
+    // 2. Ripple Back
     const prevBlock = shifts[blockIndex - 1];
     if (prevBlock && prevBlock.end) {
         prevBlock.end = newStart.toISOString();
     }
 
+    // 3. Ripple Forward
     const nextBlock = shifts[blockIndex + 1];
     if (newEnd && nextBlock) {
         nextBlock.start = newEnd.toISOString();
@@ -115,7 +123,6 @@ function getDisplayLabel(type) {
         case 'Arbeit': return '🚂 Arbeit';
         case 'Wartezeit': return '⏳ Warten';
         case 'Pause': return '☕ Pause';
-        // HIER NEU: Rückgabe von HTML mit Bild statt nur Text
         case 'Übergang': return '<img src="transit-icon.png" class="custom-icon" alt=""> Übergang';
         case 'Gastfahrt': return '🚕 Gastfahrt';
         case 'An-/Abreise': return '🚗 An-/Abreise';
@@ -211,16 +218,17 @@ function exportData() {
     });
 }
 
-// --- UI Rendering ---
+// --- UI Rendering (mit intelligenter Trennung) ---
 
 function updateUI() {
     const list = document.getElementById('log-list');
     list.innerHTML = '';
     const displayShifts = [...shifts].reverse();
 
-    displayShifts.forEach(block => {
-        const start = new Date(block.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    displayShifts.forEach((block, index) => {
+        const start = new Date(block.start);
         const end = block.end ? new Date(block.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'läuft...';
+        const startTime = start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
         let durationStr = "";
         let isNegative = false;
@@ -234,10 +242,9 @@ function updateUI() {
         }
 
         const div = document.createElement('div');
-        
+        // CSS Klasse sanitisieren
         const safeType = block.type.replace(/[^a-zA-Z0-9\u00C0-\u00FF]/g, '');
         div.className = `log-entry type-${safeType}`;
-        
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
         const displayLabel = getDisplayLabel(block.type);
@@ -245,7 +252,7 @@ function updateUI() {
         div.innerHTML = `
             <div>
                 <strong>${displayLabel}</strong><br>
-                <span class="log-time">${start} - ${end}</span>
+                <span class="log-time">${startTime} - ${end}</span>
             </div>
             <div style="text-align:right">
                 <span class="log-details" style="${isNegative ? 'color:red' : ''}">${durationStr}</span><br>
@@ -253,11 +260,37 @@ function updateUI() {
             </div>
         `;
         list.appendChild(div);
+
+        // --- SCHICHT-TRENNER LOGIK ---
+        // Prüfe den zeitlich VORHERIGEN Block (im Array displayShifts[index + 1])
+        const prevTimeBlock = displayShifts[index + 1];
+        
+        if (prevTimeBlock && prevTimeBlock.end) {
+            const prevEnd = new Date(prevTimeBlock.end);
+            
+            // 1. Echte Zeitlücke berechnen (App war aus)
+            const gapMs = start - prevEnd;
+            const gapHours = gapMs / (1000 * 60 * 60);
+
+            // 2. Dauer des vorherigen Blocks berechnen
+            const prevDurationMs = prevEnd - new Date(prevTimeBlock.start);
+            const prevDurationHours = prevDurationMs / (1000 * 60 * 60);
+
+            // Bedingung: Echte Lücke > 6h ODER Vorheriger Block war Übergang/Pause > 6h
+            const isLongRestBlock = (prevTimeBlock.type === 'Übergang' || prevTimeBlock.type === 'Pause') && prevDurationHours > SHIFT_GAP_THRESHOLD_HOURS;
+            
+            if (gapHours > SHIFT_GAP_THRESHOLD_HOURS || isLongRestBlock) {
+                const separator = document.createElement('div');
+                separator.className = 'shift-divider';
+                const dateStr = start.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+                separator.innerHTML = `⏸️ SCHICHTWECHSEL (${dateStr})`;
+                list.appendChild(separator);
+            }
+        }
     });
 
     const active = shifts.find(s => s.id === activeShiftId);
     if (active) {
-        // WICHTIG: innerHTML statt innerText, damit das Bild angezeigt wird
         document.getElementById('active-type').innerHTML = getDisplayLabel(active.type);
         document.querySelector('.btn-stop').style.display = 'block';
     } else {
@@ -271,11 +304,35 @@ function updateTimerDisplay() {
     if (!activeShiftId) return;
     const block = shifts.find(s => s.id === activeShiftId);
     if (!block) return;
+    
     const now = new Date();
     const start = new Date(block.start);
     const diff = now - start;
+
     const hh = String(Math.floor(diff / 3600000)).padStart(2, '0');
     const mm = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
     const ss = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-    document.getElementById('active-timer').innerText = `${hh}:${mm}:${ss}`;
+    
+    const timerEl = document.getElementById('active-timer');
+    const typeEl = document.getElementById('active-type');
+    
+    timerEl.innerText = `${hh}:${mm}:${ss}`;
+
+    // RUHEZEIT MONITORING (Nur Visuell)
+    if (block.type === 'Übergang') {
+        const hoursPassed = diff / (1000 * 60 * 60);
+        if (hoursPassed >= MIN_REST_HOURS) {
+            timerEl.classList.add('timer-success');
+            typeEl.classList.add('status-success');
+            if (!typeEl.innerHTML.includes('✅')) {
+                typeEl.innerHTML += ' ✅ (Ruhezeit OK)';
+            }
+        } else {
+            timerEl.classList.remove('timer-success');
+            typeEl.classList.remove('status-success');
+        }
+    } else {
+        timerEl.classList.remove('timer-success');
+        typeEl.classList.remove('status-success');
+    }
 }
