@@ -5,13 +5,12 @@
     --text-sec: #b0b0b0;
     --accent: #3498db;
     
-    /* Farb-Palette */
-    --work: #2ecc71;    /* Grün */
-    --drive: #e67e22;   /* Orange */
-    --wait: #9b59b6;    /* Lila */
-    --break: #f1c40f;   /* Gelb */
-    --transit: #3498db; /* Blau (Übergang) */
-    --commute: #1abc9c; /* Türkis (An-/Abreise) */
+    --work: #2ecc71;
+    --drive: #e67e22;
+    --wait: #9b59b6;
+    --break: #f1c40f;
+    --transit: #3498db;
+    --commute: #1abc9c;
     
     --danger: #e74c3c;
     --safe-area-bottom: env(safe-area-inset-bottom, 20px);
@@ -81,15 +80,23 @@ h1 { font-size: 1.2rem; margin: 0; }
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     user-select: none; 
     -webkit-tap-highlight-color: transparent;
+    /* Flexbox für Zentrierung von Icon + Text */
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
+    gap: 8px; /* Abstand zwischen Icon und Text */
+}
+
+/* NEU: Klasse für das Custom Icon Bild */
+.custom-icon {
+    height: 1.4em; /* Skaliert relativ zur Schriftgröße */
+    width: auto;
+    vertical-align: middle;
 }
 
 .btn:active { transform: scale(0.96); }
 
-/* Button Farben */
 .btn-work { background-color: var(--work); }
 .btn-drive { background-color: var(--drive); }
 .btn-wait { background-color: var(--wait); }
@@ -161,7 +168,6 @@ h1 { font-size: 1.2rem; margin: 0; }
 .log-list.collapsed .log-entry {
     display: none;
 }
-/* Zeige die ERSTEN 3 Elemente */
 .log-list.collapsed .log-entry:nth-child(-n+3) {
     display: flex; 
 }
@@ -177,13 +183,12 @@ h1 { font-size: 1.2rem; margin: 0; }
     border-left: 4px solid transparent;
 }
 
-/* Log-Eintrag Farben (Matching Button Farben) */
 .log-entry.type-Arbeit { border-color: var(--work); }
 .log-entry.type-Gastfahrt { border-color: var(--drive); }
 .log-entry.type-Wartezeit { border-color: var(--wait); }
 .log-entry.type-Pause { border-color: var(--break); }
 .log-entry.type-Übergang { border-color: var(--transit); }
-.log-entry.type-AnAbreise { border-color: var(--commute); } /* Sonderzeichen entfernt */
+.log-entry.type-AnAbreise { border-color: var(--commute); }
 
 .log-details { font-size: 0.9rem; display: block; margin-bottom: 2px;}
 .log-time { font-size: 0.8rem; color: var(--text-sec); }
