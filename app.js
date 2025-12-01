@@ -115,7 +115,8 @@ function getDisplayLabel(type) {
         case 'Arbeit': return '🚂 Arbeit';
         case 'Wartezeit': return '⏳ Warten';
         case 'Pause': return '☕ Pause';
-        case 'Übergang': return '🚶 Übergang';
+        // HIER NEU: Rückgabe von HTML mit Bild statt nur Text
+        case 'Übergang': return '<img src="transit-icon.png" class="custom-icon" alt=""> Übergang';
         case 'Gastfahrt': return '🚕 Gastfahrt';
         case 'An-/Abreise': return '🚗 An-/Abreise';
         default: return type;
@@ -234,7 +235,6 @@ function updateUI() {
 
         const div = document.createElement('div');
         
-        // CSS Klasse sicher generieren: Entfernt Sonderzeichen (z.B. '/' in An-/Abreise wird AnAbreise)
         const safeType = block.type.replace(/[^a-zA-Z0-9\u00C0-\u00FF]/g, '');
         div.className = `log-entry type-${safeType}`;
         
@@ -257,7 +257,8 @@ function updateUI() {
 
     const active = shifts.find(s => s.id === activeShiftId);
     if (active) {
-        document.getElementById('active-type').innerText = getDisplayLabel(active.type);
+        // WICHTIG: innerHTML statt innerText, damit das Bild angezeigt wird
+        document.getElementById('active-type').innerHTML = getDisplayLabel(active.type);
         document.querySelector('.btn-stop').style.display = 'block';
     } else {
         document.getElementById('active-type').innerText = "Bereit für Abfahrt";
