@@ -5,12 +5,13 @@
     --text-sec: #b0b0b0;
     --accent: #3498db;
     
-    --work: #2ecc71;
-    --drive: #e67e22;
-    --wait: #9b59b6;
-    --break: #f1c40f;
-    --transit: #3498db;
-    --commute: #1abc9c;
+    /* Farb-Palette */
+    --work: #2ecc71;    /* Grün */
+    --drive: #e67e22;   /* Orange */
+    --wait: #9b59b6;    /* Lila */
+    --break: #f1c40f;   /* Gelb */
+    --transit: #3498db; /* Blau */
+    --commute: #1abc9c; /* Türkis */
     
     --danger: #e74c3c;
     --safe-area-bottom: env(safe-area-inset-bottom, 20px);
@@ -80,17 +81,16 @@ h1 { font-size: 1.2rem; margin: 0; }
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     user-select: none; 
     -webkit-tap-highlight-color: transparent;
-    /* Flexbox für Zentrierung von Icon + Text */
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
-    gap: 8px; /* Abstand zwischen Icon und Text */
+    gap: 8px;
 }
 
-/* NEU: Klasse für das Custom Icon Bild */
+/* Custom Icon Image */
 .custom-icon {
-    height: 1.4em; /* Skaliert relativ zur Schriftgröße */
+    height: 1.4em;
     width: auto;
     vertical-align: middle;
 }
@@ -116,6 +116,15 @@ h1 { font-size: 1.2rem; margin: 0; }
 
 #active-type { display: block; font-size: 1.2rem; color: var(--text-sec); margin-bottom: 5px; }
 #active-timer { display: block; font-size: 2.5rem; font-family: monospace; font-weight: bold; }
+
+/* Grüner Timer wenn Ruhezeit erfüllt */
+.timer-success {
+    color: var(--work) !important;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+}
+.status-success {
+    color: var(--work) !important;
+}
 
 .btn-stop {
     background: var(--danger);
@@ -170,6 +179,20 @@ h1 { font-size: 1.2rem; margin: 0; }
 }
 .log-list.collapsed .log-entry:nth-child(-n+3) {
     display: flex; 
+}
+
+/* Visueller Trenner für Schichten */
+.shift-divider {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #000;
+    background: var(--text-sec);
+    margin: 15px 0 10px 0;
+    padding: 6px;
+    border-radius: 6px;
+    opacity: 0.9;
+    letter-spacing: 1px;
 }
 
 .log-entry {
