@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schicht-pwa-v1';
+const CACHE_NAME = 'schicht-pwa-v2'; // <--- Version erhöht!
 const ASSETS = [
   './',
   './index.html',
@@ -8,9 +8,25 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
+  // Alten Cache sofort löschen und neuen erzwingen
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+});
+
+self.addEventListener('activate', (e) => {
+  // Aufräumen alter Caches (alles was nicht v2 ist)
+  e.waitUntil(
+    caches.keys().then((keyList) => {
+      return Promise.all(keyList.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key);
+        }
+      }));
+    })
+  );
+  return self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
