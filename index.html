@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SchichtProtokoll PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png"> </head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>Zeitprotokoll</h1>
+            <div id="status-indicator" class="offline">Offline</div>
+        </header>
+
+        <div class="controls-grid">
+            <button class="btn btn-work" onclick="startBlock('Arbeit')">🔨 Arbeit</button>
+            <button class="btn btn-drive" onclick="startBlock('Transfer')">🚚 Transfer</button>
+            <button class="btn btn-wait" onclick="startBlock('Wartezeit')">⏳ Warten</button>
+            <button class="btn btn-break" onclick="startBlock('Pause')">☕ Pause</button>
+        </div>
+
+        <div class="current-status">
+            <span id="active-type">Bereit</span>
+            <span id="active-timer">00:00:00</span>
+            <button class="btn-stop" onclick="stopCurrentBlock()">STOP / SCHICHTENDE</button>
+        </div>
+
+        <div class="history-container" id="history-container">
+            <div class="history-header">
+                <span>Heutiger Verlauf</span>
+                <button id="toggle-history" onclick="toggleHistory()">▲</button>
+            </div>
+            <div id="log-list" class="log-list collapsed">
+                </div>
+        </div>
+
+        <div class="tools">
+            <button onclick="exportData()">💾 Backup erstellen</button>
+            <button onclick="clearData()" style="background:#444;">🗑️ Reset</button>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Eintrag bearbeiten</h3>
+            <input type="hidden" id="edit-id">
+            
+            <label>Typ:</label>
+            <select id="edit-type">
+                <option value="Arbeit">🔨 Arbeit</option>
+                <option value="Transfer">🚚 Transfer</option>
+                <option value="Wartezeit">⏳ Warten</option>
+                <option value="Pause">☕ Pause</option>
+            </select>
+
+            <label>Startzeit:</label>
+            <input type="time" id="edit-start">
+
+            <label>Endzeit:</label>
+            <input type="time" id="edit-end">
+
+            <div class="modal-actions">
+                <button onclick="saveEdit()" class="btn-save">Speichern & Ripple</button>
+                <button onclick="closeModal()" class="btn-cancel">Abbrechen</button>
+            </div>
+            <p class="hint">Änderungen verschieben nachfolgende Zeiten automatisch!</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Minimaler Service Worker Register für PWA Installation
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Service Worker Registered'));
+        }
+    </script>
+</body>
+</html>
