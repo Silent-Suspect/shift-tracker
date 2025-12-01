@@ -4,10 +4,15 @@
     --text-main: #ffffff;
     --text-sec: #b0b0b0;
     --accent: #3498db;
-    --work: #2ecc71;   /* Grün */
-    --drive: #e67e22;  /* Orange (Gastfahrt) */
-    --wait: #9b59b6;   /* Lila */
-    --break: #f1c40f;  /* Gelb */
+    
+    /* Farb-Palette */
+    --work: #2ecc71;    /* Grün */
+    --drive: #e67e22;   /* Orange */
+    --wait: #9b59b6;    /* Lila */
+    --break: #f1c40f;   /* Gelb */
+    --transit: #3498db; /* Blau (Übergang) */
+    --commute: #1abc9c; /* Türkis (An-/Abreise) */
+    
     --danger: #e74c3c;
     --safe-area-bottom: env(safe-area-inset-bottom, 20px);
 }
@@ -68,7 +73,7 @@ h1 { font-size: 1.2rem; margin: 0; }
     border: none;
     border-radius: 12px;
     padding: 15px 5px;
-    font-size: 0.95rem; /* Leicht kleiner für lange Texte */
+    font-size: 0.95rem;
     font-weight: bold;
     color: #fff;
     cursor: pointer;
@@ -83,10 +88,14 @@ h1 { font-size: 1.2rem; margin: 0; }
 }
 
 .btn:active { transform: scale(0.96); }
+
+/* Button Farben */
 .btn-work { background-color: var(--work); }
 .btn-drive { background-color: var(--drive); }
 .btn-wait { background-color: var(--wait); }
 .btn-break { background-color: var(--break); color: #000; }
+.btn-transit { background-color: var(--transit); }
+.btn-commute { background-color: var(--commute); color: #000; }
 
 .current-status {
     background: var(--card-bg);
@@ -152,7 +161,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 .log-list.collapsed .log-entry {
     display: none;
 }
-/* Zeige die ERSTEN 3 Elemente (die 3 Neuesten) */
+/* Zeige die ERSTEN 3 Elemente */
 .log-list.collapsed .log-entry:nth-child(-n+3) {
     display: flex; 
 }
@@ -168,11 +177,13 @@ h1 { font-size: 1.2rem; margin: 0; }
     border-left: 4px solid transparent;
 }
 
-/* Neue Typ-Klassen */
+/* Log-Eintrag Farben (Matching Button Farben) */
 .log-entry.type-Arbeit { border-color: var(--work); }
-.log-entry.type-Gastfahrt { border-color: var(--drive); } /* War vorher Transfer */
+.log-entry.type-Gastfahrt { border-color: var(--drive); }
 .log-entry.type-Wartezeit { border-color: var(--wait); }
 .log-entry.type-Pause { border-color: var(--break); }
+.log-entry.type-Übergang { border-color: var(--transit); }
+.log-entry.type-AnAbreise { border-color: var(--commute); } /* Sonderzeichen entfernt */
 
 .log-details { font-size: 0.9rem; display: block; margin-bottom: 2px;}
 .log-time { font-size: 0.8rem; color: var(--text-sec); }
