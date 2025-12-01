@@ -18,8 +18,9 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
-    height: 100vh;
-    overflow: hidden; /* Prevent body scroll, handle inside app-container */
+    height: 100vh; /* Volle Höhe erzwingen */
+    height: 100dvh; /* Dynamic Viewport Height für mobile Browser Adressleisten */
+    overflow: hidden; /* Scrollen auf dem Body verhindern */
     display: flex;
     flex-direction: column;
 }
@@ -34,13 +35,15 @@ body {
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
+    overflow: hidden; /* Wichtig damit innere Scrollbereiche greifen */
 }
 
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+    flex-shrink: 0; /* Header darf nicht schrumpfen */
 }
 
 h1 { font-size: 1.2rem; margin: 0; }
@@ -58,19 +61,23 @@ h1 { font-size: 1.2rem; margin: 0; }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    flex-shrink: 0; /* Darf nicht schrumpfen */
 }
 
 .btn {
     border: none;
     border-radius: 12px;
-    padding: 20px 10px;
+    padding: 15px 10px; /* Etwas kompakter */
     font-size: 1rem;
     font-weight: bold;
     color: #fff;
     cursor: pointer;
     transition: transform 0.1s;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    /* Verhindert Text-Auswahl auf Mobile beim schnellen Tippen */
+    user-select: none; 
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn:active { transform: scale(0.96); }
@@ -87,6 +94,7 @@ h1 { font-size: 1.2rem; margin: 0; }
     text-align: center;
     margin-bottom: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    flex-shrink: 0;
 }
 
 #active-type { display: block; font-size: 1.2rem; color: var(--text-sec); margin-bottom: 5px; }
@@ -97,30 +105,35 @@ h1 { font-size: 1.2rem; margin: 0; }
     color: white;
     border: none;
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
     margin-top: 10px;
     font-size: 1rem;
+    font-weight: bold;
 }
 
-/* History Drawer */
+/* History Drawer - SCROLL FIX AREA */
 .history-container {
     background: var(--card-bg);
     border-radius: 12px 12px 0 0;
-    flex: 1; /* Nimm den restlichen Platz */
+    border: 1px solid #333;
+    
+    /* Flexbox Magie für Scrollen */
+    flex: 1; 
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    border: 1px solid #333;
+    min-height: 0; /* GANZ WICHTIG: Erlaubt dem Container kleiner als sein Inhalt zu sein */
 }
 
 .history-header {
-    padding: 10px 15px;
+    padding: 12px 15px;
     background: #2c2c2c;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #444;
+    flex-shrink: 0;
+    cursor: pointer; /* Damit man weiß, dass man klicken kann */
 }
 
 #toggle-history {
@@ -128,28 +141,30 @@ h1 { font-size: 1.2rem; margin: 0; }
     border: none;
     color: var(--text-main);
     font-size: 1.2rem;
-    padding: 5px;
+    padding: 0 10px;
 }
 
 .log-list {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1; /* Nimm den restlichen Platz im history-container */
+    overflow-y: auto; /* Scrollen erlauben */
+    -webkit-overflow-scrolling: touch; /* Weiches Scrollen auf iOS */
     padding: 10px;
-    transition: all 0.3s ease;
 }
 
-/* Collapsed State Logic via JS class */
+/* Collapsed State Logic */
 .log-list.collapsed .log-entry {
     display: none;
 }
-.log-list.collapsed .log-entry:nth-last-child(-n+2) {
-    display: flex; /* Zeige nur die letzten 2 */
+
+/* FIX: Zeige die ERSTEN 2 Elemente (da die Liste JS-seitig reversed ist, sind das die Neuesten) */
+.log-list.collapsed .log-entry:nth-child(-n+2) {
+    display: flex; 
 }
 
 .log-entry {
     background: #252525;
     margin-bottom: 8px;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
@@ -162,9 +177,16 @@ h1 { font-size: 1.2rem; margin: 0; }
 .log-entry.type-Wartezeit { border-color: var(--wait); }
 .log-entry.type-Pause { border-color: var(--break); }
 
-.log-details { font-size: 0.9rem; }
+.log-details { font-size: 0.9rem; display: block; margin-bottom: 2px;}
 .log-time { font-size: 0.8rem; color: var(--text-sec); }
-.btn-edit { background: none; border: 1px solid #555; color: #fff; border-radius: 4px; padding: 4px 8px; }
+.btn-edit { 
+    background: #333; 
+    border: 1px solid #555; 
+    color: #fff; 
+    border-radius: 6px; 
+    padding: 6px 12px; 
+    margin-left: 10px;
+}
 
 /* Modal */
 .modal {
@@ -172,25 +194,43 @@ h1 { font-size: 1.2rem; margin: 0; }
     background: rgba(0,0,0,0.8);
     display: flex; justify-content: center; align-items: center;
     z-index: 1000;
+    backdrop-filter: blur(3px); /* Hübscher Blur Effekt */
 }
 .hidden { display: none; }
 .modal-content {
     background: var(--card-bg);
     padding: 20px;
-    border-radius: 12px;
-    width: 85%;
+    border-radius: 16px;
+    width: 90%;
     max-width: 350px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border: 1px solid #333;
 }
-.modal-content label { display: block; margin-top: 10px; color: var(--text-sec); }
+.modal-content h3 { margin-top: 0; }
+.modal-content label { display: block; margin-top: 12px; color: var(--text-sec); font-size: 0.9rem;}
 .modal-content input, .modal-content select {
-    width: 100%; padding: 10px; margin-top: 5px;
-    background: #333; border: 1px solid #555; color: white;
-    border-radius: 6px; box-sizing: border-box;
+    width: 100%; padding: 12px; margin-top: 5px;
+    background: #121212; border: 1px solid #444; color: white;
+    border-radius: 8px; box-sizing: border-box;
+    font-size: 1rem;
 }
-.modal-actions { margin-top: 20px; display: flex; gap: 10px; }
-.btn-save { flex: 1; background: var(--accent); border: none; padding: 10px; border-radius: 6px; color: white; }
-.btn-cancel { flex: 1; background: #555; border: none; padding: 10px; border-radius: 6px; color: white; }
-.hint { font-size: 0.75rem; color: var(--danger); margin-top: 10px; }
+.modal-actions { margin-top: 25px; display: flex; gap: 10px; }
+.btn-save { flex: 1; background: var(--accent); border: none; padding: 12px; border-radius: 8px; color: white; font-weight: bold;}
+.btn-cancel { flex: 1; background: #333; border: none; padding: 12px; border-radius: 8px; color: white; }
+.hint { font-size: 0.8rem; color: var(--danger); margin-top: 15px; text-align: center; display: block;}
 
-.tools { margin-top: 10px; display: flex; gap: 10px; }
-.tools button { flex: 1; padding: 10px; background: #333; border: none; color: white; border-radius: 8px; }
+.tools { 
+    margin-top: 10px; 
+    display: flex; 
+    gap: 10px; 
+    flex-shrink: 0;
+}
+.tools button { 
+    flex: 1; 
+    padding: 12px; 
+    background: #252525; 
+    border: 1px solid #333; 
+    color: var(--text-sec); 
+    border-radius: 8px; 
+    font-size: 0.9rem;
+}
