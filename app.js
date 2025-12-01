@@ -6,7 +6,7 @@ let timerInterval = null;
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    migrateData(); // Altdaten korrigieren (Transfer -> Gastfahrt)
+    migrateData();
     updateUI();
     
     timerInterval = setInterval(updateTimerDisplay, 1000);
@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function startBlock(type) {
     const now = new Date();
     
-    // Prellschutz: Gleichen Typ ignorieren
     if (activeShiftId) {
         const currentBlock = shifts.find(s => s.id === activeShiftId);
         if (currentBlock && currentBlock.type === type) {
@@ -90,18 +89,15 @@ function saveEdit() {
         }
     }
 
-    // 1. Update aktueller Block
     shifts[blockIndex].type = type;
     shifts[blockIndex].start = newStart.toISOString();
     shifts[blockIndex].end = newEnd ? newEnd.toISOString() : null;
 
-    // 2. Rückwärts-Anpassung
     const prevBlock = shifts[blockIndex - 1];
     if (prevBlock && prevBlock.end) {
         prevBlock.end = newStart.toISOString();
     }
 
-    // 3. Vorwärts-Anpassung
     const nextBlock = shifts[blockIndex + 1];
     if (newEnd && nextBlock) {
         nextBlock.start = newEnd.toISOString();
@@ -114,19 +110,18 @@ function saveEdit() {
 
 // --- Helpers ---
 
-// Diese Funktion rahmt den Text mit Emojis ein
+// UPDATE: Emojis nur noch am Anfang
 function getDisplayLabel(type) {
     switch(type) {
-        case 'Arbeit': return '🚂 Arbeit 🚂';
-        case 'Gastfahrt': return '🚕 Gastfahrt 🚕';
-        case 'Wartezeit': return '⏳ Warten ⏳';
-        case 'Pause': return '☕ Pause ☕';
+        case 'Arbeit': return '🚂 Arbeit';
+        case 'Gastfahrt': return '🚕 Gastfahrt';
+        case 'Wartezeit': return '⏳ Warten';
+        case 'Pause': return '☕ Pause';
         default: return type;
     }
 }
 
 function migrateData() {
-    // Falls noch alte "Transfer" Einträge existieren, benennen wir sie um
     let changed = false;
     shifts.forEach(s => {
         if (s.type === 'Transfer') {
@@ -240,7 +235,6 @@ function updateUI() {
         div.className = `log-entry type-${block.type.replace(/\s/g, '')}`;
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
-        // Hier nutzen wir jetzt die Helfer-Funktion für die Anzeige
         const displayLabel = getDisplayLabel(block.type);
 
         div.innerHTML = `
