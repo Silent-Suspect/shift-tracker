@@ -22,8 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function startBlock(type) {
     const now = new Date();
     
-    // Wenn bereits ein Block läuft, beenden wir ihn zuerst
+    // NEU: Prellschutz / Dubletten-Check
+    // Wenn bereits ein Block läuft UND es derselbe Typ ist -> Ignorieren
     if (activeShiftId) {
+        const currentBlock = shifts.find(s => s.id === activeShiftId);
+        if (currentBlock && currentBlock.type === type) {
+            console.log("Aktivität läuft bereits: " + type);
+            // Optional: Kurzes visuelles Feedback (z.B. Button wackeln lassen), 
+            // aber für jetzt reicht ignorieren.
+            return; 
+        }
+        // Wenn anderer Typ, beende den aktuellen
         stopCurrentBlock(now);
     }
 
@@ -53,7 +62,7 @@ function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
-// --- Resize Edit Logic (Magnetische Grenzen) ---
+// --- Resize Edit Logic ---
 
 function editBlock(id) {
     const block = shifts.find(s => s.id === id);
@@ -70,13 +79,12 @@ function editBlock(id) {
 function saveEdit() {
     const id = parseInt(document.getElementById('edit-id').value);
     const type = document.getElementById('edit-type').value;
-    const startInput = document.getElementById('edit-start').value; // HH:mm
-    const endInput = document.getElementById('edit-end').value; // HH:mm
+    const startInput = document.getElementById('edit-start').value; 
+    const endInput = document.getElementById('edit-end').value; 
 
     const blockIndex = shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    // Basis-Datum ermitteln
     const baseDateStart = new Date(shifts[blockIndex].start);
     const newStart = setTime(baseDateStart, startInput);
     
@@ -84,33 +92,25 @@ function saveEdit() {
     if (endInput) {
         newEnd = setTime(baseDateStart, endInput);
         if (newEnd < newStart) {
-            newEnd.setDate(newEnd.getDate() + 1); // Mitternacht handling
+            newEnd.setDate(newEnd.getDate() + 1); 
         }
     }
 
-    // --- LOGIK: STAUCHEN / DEHNEN ---
-    
     // 1. Update aktueller Block
     shifts[blockIndex].type = type;
     shifts[blockIndex].start = newStart.toISOString();
     shifts[blockIndex].end = newEnd ? newEnd.toISOString() : null;
 
-    // 2. Rückwärts-Anpassung: Grenze A | B
-    // Wir ändern Start von B (aktuell) -> Ende von A (Vorgänger) muss gleichziehen.
+    // 2. Rückwärts-Anpassung
     const prevBlock = shifts[blockIndex - 1];
     if (prevBlock && prevBlock.end) {
-        // Wir ändern nur das ENDE des Vorgängers. Sein Start bleibt unberührt.
         prevBlock.end = newStart.toISOString();
     }
 
-    // 3. Vorwärts-Anpassung: Grenze B | C
-    // Wir ändern Ende von B (aktuell) -> Start von C (Nachfolger) muss gleichziehen.
-    // Das Ende von C bleibt unberührt (Stauchung/Dehnung von C).
+    // 3. Vorwärts-Anpassung
     const nextBlock = shifts[blockIndex + 1];
     if (newEnd && nextBlock) {
         nextBlock.start = newEnd.toISOString();
-        // KEIN Code, der nextBlock.end anpasst. 
-        // Das gewährleistet, dass sich der Fehler nicht durch den Tag fortpflanzt.
     }
 
     closeModal();
@@ -161,7 +161,7 @@ function saveData() {
 }
 
 function clearData() {
-    if(confirm("Alles löschen?")) {
+    if(confirm("ACHTUNG: Alle lokalen Daten werden gelöscht! Hast du ein Backup gemacht?")) {
         shifts = [];
         activeShiftId = null;
         saveData();
@@ -190,7 +190,6 @@ function exportData() {
     link.click();
     document.body.removeChild(link);
     
-    // Clipboard Fallback für iOS
     const rawCSV = csvContent.replace("data:text/csv;charset=utf-8,", "");
     navigator.clipboard.writeText(rawCSV).then(() => {
         alert("Backup erstellt! Daten auch in Zwischenablage kopiert.");
@@ -225,7 +224,6 @@ function updateUI() {
 
         const div = document.createElement('div');
         div.className = `log-entry type-${block.type.replace(/\s/g, '')}`;
-        // Visuelles Feedback für kaputte Zeiten (Negativ)
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
         div.innerHTML = `
