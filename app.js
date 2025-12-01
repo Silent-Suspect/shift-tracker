@@ -110,13 +110,14 @@ function saveEdit() {
 
 // --- Helpers ---
 
-// UPDATE: Emojis nur noch am Anfang
 function getDisplayLabel(type) {
     switch(type) {
         case 'Arbeit': return '🚂 Arbeit';
-        case 'Gastfahrt': return '🚕 Gastfahrt';
         case 'Wartezeit': return '⏳ Warten';
         case 'Pause': return '☕ Pause';
+        case 'Übergang': return '🚶 Übergang';
+        case 'Gastfahrt': return '🚕 Gastfahrt';
+        case 'An-/Abreise': return '🚗 An-/Abreise';
         default: return type;
     }
 }
@@ -232,7 +233,11 @@ function updateUI() {
         }
 
         const div = document.createElement('div');
-        div.className = `log-entry type-${block.type.replace(/\s/g, '')}`;
+        
+        // CSS Klasse sicher generieren: Entfernt Sonderzeichen (z.B. '/' in An-/Abreise wird AnAbreise)
+        const safeType = block.type.replace(/[^a-zA-Z0-9\u00C0-\u00FF]/g, '');
+        div.className = `log-entry type-${safeType}`;
+        
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
         const displayLabel = getDisplayLabel(block.type);
