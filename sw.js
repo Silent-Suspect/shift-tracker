@@ -1,11 +1,11 @@
-const CACHE_NAME = 'schicht-pwa-v6'; // <--- Version 6!
+const CACHE_NAME = 'schicht-pwa-v9'; // <--- Version 9!
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './transit-icon.png' // <--- Das neue Bild muss hier rein!
+  './transit-icon.png'
 ];
 
 self.addEventListener('install', (e) => {
