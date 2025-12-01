@@ -156,8 +156,8 @@ h1 { font-size: 1.2rem; margin: 0; }
     display: none;
 }
 
-/* FIX: Zeige die ERSTEN 2 Elemente (da die Liste JS-seitig reversed ist, sind das die Neuesten) */
-.log-list.collapsed .log-entry:nth-child(-n+2) {
+/* FIX: Zeige die ERSTEN 3 Elemente (da die Liste JS-seitig reversed ist, sind das die Neuesten) */
+.log-list.collapsed .log-entry:nth-child(-n+3) {
     display: flex; 
 }
 
@@ -234,3 +234,4 @@ h1 { font-size: 1.2rem; margin: 0; }
     border-radius: 8px; 
     font-size: 0.9rem;
 }
+
