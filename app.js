@@ -6,12 +6,11 @@ let timerInterval = null;
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    migrateData(); // Altdaten korrigieren (Transfer -> Gastfahrt)
     updateUI();
     
-    // Timer Ticker
     timerInterval = setInterval(updateTimerDisplay, 1000);
     
-    // Status Check
     window.addEventListener('online', () => document.getElementById('status-indicator').innerText = 'Online');
     window.addEventListener('offline', () => document.getElementById('status-indicator').innerText = 'Offline');
     if(navigator.onLine) document.getElementById('status-indicator').innerText = 'Online';
@@ -22,17 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function startBlock(type) {
     const now = new Date();
     
-    // NEU: Prellschutz / Dubletten-Check
-    // Wenn bereits ein Block läuft UND es derselbe Typ ist -> Ignorieren
+    // Prellschutz: Gleichen Typ ignorieren
     if (activeShiftId) {
         const currentBlock = shifts.find(s => s.id === activeShiftId);
         if (currentBlock && currentBlock.type === type) {
-            console.log("Aktivität läuft bereits: " + type);
-            // Optional: Kurzes visuelles Feedback (z.B. Button wackeln lassen), 
-            // aber für jetzt reicht ignorieren.
             return; 
         }
-        // Wenn anderer Typ, beende den aktuellen
         stopCurrentBlock(now);
     }
 
@@ -120,6 +114,29 @@ function saveEdit() {
 
 // --- Helpers ---
 
+// Diese Funktion rahmt den Text mit Emojis ein
+function getDisplayLabel(type) {
+    switch(type) {
+        case 'Arbeit': return '🚂 Arbeit 🚂';
+        case 'Gastfahrt': return '🚕 Gastfahrt 🚕';
+        case 'Wartezeit': return '⏳ Warten ⏳';
+        case 'Pause': return '☕ Pause ☕';
+        default: return type;
+    }
+}
+
+function migrateData() {
+    // Falls noch alte "Transfer" Einträge existieren, benennen wir sie um
+    let changed = false;
+    shifts.forEach(s => {
+        if (s.type === 'Transfer') {
+            s.type = 'Gastfahrt';
+            changed = true;
+        }
+    });
+    if (changed) saveData();
+}
+
 function setTime(dateObj, timeString) {
     const [hours, minutes] = timeString.split(':');
     const newDate = new Date(dateObj);
@@ -161,7 +178,7 @@ function saveData() {
 }
 
 function clearData() {
-    if(confirm("ACHTUNG: Alle lokalen Daten werden gelöscht! Hast du ein Backup gemacht?")) {
+    if(confirm("Alles löschen?")) {
         shifts = [];
         activeShiftId = null;
         saveData();
@@ -179,22 +196,21 @@ function exportData() {
         const endTime = end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT';
         let duration = 0;
         if (end) duration = Math.floor((end - start) / 60000);
+        
         csvContent += `${e.id},${e.type},"${dateStr}",${startTime},${endTime},${duration}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "zeitprotokoll_backup.csv");
+    link.setAttribute("download", "zugprotokoll_backup.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     const rawCSV = csvContent.replace("data:text/csv;charset=utf-8,", "");
     navigator.clipboard.writeText(rawCSV).then(() => {
-        alert("Backup erstellt! Daten auch in Zwischenablage kopiert.");
-    }, () => {
-        alert("Backup Download gestartet.");
+        alert("Backup erstellt!");
     });
 }
 
@@ -211,11 +227,9 @@ function updateUI() {
         
         let durationStr = "";
         let isNegative = false;
-        
         if (block.end) {
             const diff = new Date(block.end) - new Date(block.start);
             if (diff < 0) isNegative = true;
-            
             const totalMins = Math.floor(Math.abs(diff) / 60000);
             const hrs = Math.floor(totalMins / 60);
             const mins = totalMins % 60;
@@ -226,9 +240,12 @@ function updateUI() {
         div.className = `log-entry type-${block.type.replace(/\s/g, '')}`;
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
+        // Hier nutzen wir jetzt die Helfer-Funktion für die Anzeige
+        const displayLabel = getDisplayLabel(block.type);
+
         div.innerHTML = `
             <div>
-                <strong>${block.type}</strong><br>
+                <strong>${displayLabel}</strong><br>
                 <span class="log-time">${start} - ${end}</span>
             </div>
             <div style="text-align:right">
@@ -241,10 +258,10 @@ function updateUI() {
 
     const active = shifts.find(s => s.id === activeShiftId);
     if (active) {
-        document.getElementById('active-type').innerText = active.type;
+        document.getElementById('active-type').innerText = getDisplayLabel(active.type);
         document.querySelector('.btn-stop').style.display = 'block';
     } else {
-        document.getElementById('active-type').innerText = "Bereit";
+        document.getElementById('active-type').innerText = "Bereit für Abfahrt";
         document.getElementById('active-timer').innerText = "00:00:00";
         document.querySelector('.btn-stop').style.display = 'none';
     }
