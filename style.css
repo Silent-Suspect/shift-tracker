@@ -61,6 +61,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 .online { background: var(--work); color: #000; }
 .offline { background: var(--text-sec); color: #000; }
 
+/* --- BUTTON GRID --- */
 .controls-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -97,6 +98,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 
 .btn:active { transform: scale(0.96); }
 
+/* Button Farben */
 .btn-work { background-color: var(--work); }
 .btn-drive { background-color: var(--drive); }
 .btn-wait { background-color: var(--wait); }
@@ -104,6 +106,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 .btn-transit { background-color: var(--transit); }
 .btn-commute { background-color: var(--commute); color: #000; }
 
+/* --- STATUS AREA --- */
 .current-status {
     background: var(--card-bg);
     padding: 15px;
@@ -138,6 +141,7 @@ h1 { font-size: 1.2rem; margin: 0; }
     font-weight: bold;
 }
 
+/* --- HISTORY LIST --- */
 .history-container {
     background: var(--card-bg);
     border-radius: 12px 12px 0 0;
@@ -177,6 +181,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 .log-list.collapsed .log-entry {
     display: none;
 }
+/* Zeige die ERSTEN 3 Elemente wenn eingeklappt */
 .log-list.collapsed .log-entry:nth-child(-n+3) {
     display: flex; 
 }
@@ -224,6 +229,7 @@ h1 { font-size: 1.2rem; margin: 0; }
     margin-left: 10px;
 }
 
+/* --- MODAL --- */
 .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.8);
@@ -255,7 +261,7 @@ h1 { font-size: 1.2rem; margin: 0; }
 .btn-cancel { flex: 1; background: #333; border: none; padding: 12px; border-radius: 8px; color: white; }
 .hint { font-size: 0.8rem; color: var(--danger); margin-top: 15px; text-align: center; display: block;}
 
-/* DELETE SECTION Styling */
+/* --- DELETE SECTION Styling --- */
 .delete-section {
     margin-top: 25px;
     border-top: 1px solid #444;
@@ -278,12 +284,31 @@ h1 { font-size: 1.2rem; margin: 0; }
     color: white;
 }
 
-/* GAP OPTIONS Styling (für intelligentes Löschen) */
+/* --- GAP & MERGE OPTIONS Styling --- */
 .gap-actions {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin-top: 15px;
+}
+
+/* Der neue Merge Button */
+.btn-gap-merge {
+    background: #8e44ad; /* Wisteria Purple */
+    border: 1px solid #9b59b6;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 5px;
+    box-shadow: 0 0 10px rgba(142, 68, 173, 0.3);
+}
+.btn-gap-merge:active {
+    background: #9b59b6;
+    transform: scale(0.98);
 }
 
 .btn-gap {
@@ -297,10 +322,7 @@ h1 { font-size: 1.2rem; margin: 0; }
     text-align: left;
     position: relative;
 }
-
-.btn-gap:active {
-    background: var(--accent);
-}
+.btn-gap:active { background: var(--accent); }
 
 .btn-gap-simple {
     background: transparent;
@@ -312,12 +334,9 @@ h1 { font-size: 1.2rem; margin: 0; }
     cursor: pointer;
     margin-top: 5px;
 }
+.btn-gap-simple:active { background: var(--danger); color: white; }
 
-.btn-gap-simple:active {
-    background: var(--danger);
-    color: white;
-}
-
+/* --- TOOLS AREA --- */
 .tools { 
     margin-top: 10px; 
     display: flex; 
