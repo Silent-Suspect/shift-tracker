@@ -67,9 +67,16 @@
             <input type="time" id="edit-start">
             <label>Endzeit:</label>
             <input type="time" id="edit-end">
+            
+            <p class="hint">Folgezeiten passen sich automatisch an.</p>
+
             <div class="modal-actions">
                 <button id="btn-save-edit" class="btn-save">Speichern</button>
                 <button id="btn-cancel-edit" class="btn-cancel">Abbrechen</button>
+            </div>
+
+            <div class="delete-section">
+                <button id="btn-delete-entry" class="btn-delete-entry">Eintrag löschen 🗑️</button>
             </div>
         </div>
     </div>
@@ -78,10 +85,8 @@
         <div class="modal-content">
             <h3>☁️ Cloud Sync</h3>
             <p class="hint">Bitte Zugangscode eingeben.</p>
-            
             <label>Code:</label>
             <input type="password" id="cloud-pw" placeholder="****" style="text-align:center; font-size:1.2rem; letter-spacing: 2px;">
-
             <div class="modal-actions">
                 <button id="btn-save-cloud" class="btn-save">Senden</button>
                 <button id="btn-cancel-cloud" class="btn-cancel">Abbrechen</button>
