@@ -4,21 +4,61 @@ let activeShiftId = null;
 let timerInterval = null;
 
 // KONFIGURATION
-const MIN_REST_HOURS = 10; // Stunden für grünes Häkchen bei Übergang
-const SHIFT_GAP_THRESHOLD_HOURS = 6; // Stunden Lücke für Trennlinie im Verlauf
+const MIN_REST_HOURS = 10; 
+const SHIFT_GAP_THRESHOLD_HOURS = 6; 
 
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
-    loadData();
+    initEventListeners(); // NEU: Event Handler registrieren
+    loadData();           // Daten laden & State wiederherstellen
     migrateData();
     updateUI();
     
+    // Timer sofort starten, damit keine Sekunde vergeht bis zum ersten Update
+    updateTimerDisplay();
     timerInterval = setInterval(updateTimerDisplay, 1000);
     
-    window.addEventListener('online', () => document.getElementById('status-indicator').innerText = 'Online');
-    window.addEventListener('offline', () => document.getElementById('status-indicator').innerText = 'Offline');
-    if(navigator.onLine) document.getElementById('status-indicator').innerText = 'Online';
+    // Connection Status
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
 });
+
+// --- Modern Event Handling ---
+function initEventListeners() {
+    // Haupt-Buttons
+    document.getElementById('btn-work').addEventListener('click', () => startBlock('Arbeit'));
+    document.getElementById('btn-wait').addEventListener('click', () => startBlock('Wartezeit'));
+    document.getElementById('btn-break').addEventListener('click', () => startBlock('Pause'));
+    document.getElementById('btn-transit').addEventListener('click', () => startBlock('Übergang'));
+    document.getElementById('btn-drive').addEventListener('click', () => startBlock('Gastfahrt'));
+    document.getElementById('btn-commute').addEventListener('click', () => startBlock('An-/Abreise'));
+    
+    // Stop Button
+    document.getElementById('btn-stop').addEventListener('click', () => stopCurrentBlock());
+
+    // History Toggle
+    document.getElementById('history-header').addEventListener('click', toggleHistory);
+
+    // Tools
+    document.getElementById('btn-export').addEventListener('click', exportData);
+    document.getElementById('btn-reset').addEventListener('click', clearData);
+
+    // Modal Actions
+    document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
+    document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
+}
+
+function updateConnectionStatus() {
+    const el = document.getElementById('status-indicator');
+    if (navigator.onLine) {
+        el.innerText = 'Online';
+        el.className = 'online'; // Klasse für Styling nutzen (optional in CSS)
+    } else {
+        el.innerText = 'Offline';
+        el.className = 'offline';
+    }
+}
 
 // --- Core Logic ---
 
@@ -28,9 +68,7 @@ function startBlock(type) {
     // Prellschutz
     if (activeShiftId) {
         const currentBlock = shifts.find(s => s.id === activeShiftId);
-        if (currentBlock && currentBlock.type === type) {
-            return; 
-        }
+        if (currentBlock && currentBlock.type === type) return; 
         stopCurrentBlock(now);
     }
 
@@ -43,7 +81,7 @@ function startBlock(type) {
 
     shifts.push(newBlock);
     activeShiftId = newBlock.id;
-    saveData();
+    saveData(); // WICHTIG: Sofortiges Speichern verhindert Datenverlust bei Crash
     updateUI();
 }
 
@@ -62,7 +100,8 @@ function stopCurrentBlock(endTime = new Date()) {
 
 // --- Edit Logic ---
 
-function editBlock(id) {
+// Wrapper für onclick im generierten HTML (muss global verfügbar sein)
+window.editBlock = function(id) {
     const block = shifts.find(s => s.id === id);
     if (!block) return;
 
@@ -159,7 +198,7 @@ function formatTimeForInput(isoString) {
 
 function toggleHistory() {
     const list = document.getElementById('log-list');
-    const btn = document.getElementById('toggle-history');
+    const btn = document.getElementById('toggle-history-btn'); // ID angepasst
     list.classList.toggle('collapsed');
     btn.innerText = list.classList.contains('collapsed') ? '▲' : '▼';
 }
@@ -171,9 +210,18 @@ function closeModal() {
 function loadData() {
     const stored = localStorage.getItem('shift_data');
     if (stored) {
-        shifts = JSON.parse(stored);
-        const active = shifts.find(s => s.end === null);
-        if (active) activeShiftId = active.id;
+        try {
+            shifts = JSON.parse(stored);
+            // Wiederherstellung des aktiven Blocks
+            const active = shifts.find(s => s.end === null);
+            if (active) {
+                activeShiftId = active.id;
+                console.log("Aktive Schicht wiederhergestellt:", active.type);
+            }
+        } catch (e) {
+            console.error("Datenfehler:", e);
+            shifts = [];
+        }
     }
 }
 
@@ -218,7 +266,7 @@ function exportData() {
     });
 }
 
-// --- UI Rendering (mit intelligenter Trennung) ---
+// --- UI Rendering ---
 
 function updateUI() {
     const list = document.getElementById('log-list');
@@ -242,13 +290,14 @@ function updateUI() {
         }
 
         const div = document.createElement('div');
-        // CSS Klasse sanitisieren
         const safeType = block.type.replace(/[^a-zA-Z0-9\u00C0-\u00FF]/g, '');
         div.className = `log-entry type-${safeType}`;
         if (isNegative) div.style.borderRight = "5px solid red"; 
 
         const displayLabel = getDisplayLabel(block.type);
 
+        // Edit Button bleibt hier inline, weil er dynamisch generiert wird.
+        // Das ist ok, da window.editBlock oben definiert wurde.
         div.innerHTML = `
             <div>
                 <strong>${displayLabel}</strong><br>
@@ -261,22 +310,15 @@ function updateUI() {
         `;
         list.appendChild(div);
 
-        // --- SCHICHT-TRENNER LOGIK ---
-        // Prüfe den zeitlich VORHERIGEN Block (im Array displayShifts[index + 1])
+        // --- SCHICHT-TRENNER ---
         const prevTimeBlock = displayShifts[index + 1];
-        
         if (prevTimeBlock && prevTimeBlock.end) {
             const prevEnd = new Date(prevTimeBlock.end);
-            
-            // 1. Echte Zeitlücke berechnen (App war aus)
             const gapMs = start - prevEnd;
             const gapHours = gapMs / (1000 * 60 * 60);
-
-            // 2. Dauer des vorherigen Blocks berechnen
             const prevDurationMs = prevEnd - new Date(prevTimeBlock.start);
             const prevDurationHours = prevDurationMs / (1000 * 60 * 60);
 
-            // Bedingung: Echte Lücke > 6h ODER Vorheriger Block war Übergang/Pause > 6h
             const isLongRestBlock = (prevTimeBlock.type === 'Übergang' || prevTimeBlock.type === 'Pause') && prevDurationHours > SHIFT_GAP_THRESHOLD_HOURS;
             
             if (gapHours > SHIFT_GAP_THRESHOLD_HOURS || isLongRestBlock) {
@@ -318,7 +360,6 @@ function updateTimerDisplay() {
     
     timerEl.innerText = `${hh}:${mm}:${ss}`;
 
-    // RUHEZEIT MONITORING (Nur Visuell)
     if (block.type === 'Übergang') {
         const hoursPassed = diff / (1000 * 60 * 60);
         if (hoursPassed >= MIN_REST_HOURS) {
