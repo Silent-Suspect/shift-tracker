@@ -19,36 +19,36 @@
         </header>
 
         <div class="controls-grid">
-            <button class="btn btn-work" onclick="startBlock('Arbeit')">🚂 Arbeit</button>
-            <button class="btn btn-wait" onclick="startBlock('Wartezeit')">⏳ Warten</button>
+            <button id="btn-work" class="btn btn-work">🚂 Arbeit</button>
+            <button id="btn-wait" class="btn btn-wait">⏳ Warten</button>
             
-            <button class="btn btn-break" onclick="startBlock('Pause')">☕ Pause</button>
-            <button class="btn btn-transit" onclick="startBlock('Übergang')">
+            <button id="btn-break" class="btn btn-break">☕ Pause</button>
+            <button id="btn-transit" class="btn btn-transit">
                 <img src="transit-icon.png" class="custom-icon" alt=""> Übergang
             </button>
             
-            <button class="btn btn-drive" onclick="startBlock('Gastfahrt')">🚕 Gastfahrt</button>
-            <button class="btn btn-commute" onclick="startBlock('An-/Abreise')">🚗 An-/Abreise</button>
+            <button id="btn-drive" class="btn btn-drive">🚕 Gastfahrt</button>
+            <button id="btn-commute" class="btn btn-commute">🚗 An-/Abreise</button>
         </div>
 
         <div class="current-status">
             <span id="active-type">Bereit</span>
             <span id="active-timer">00:00:00</span>
-            <button class="btn-stop" onclick="stopCurrentBlock()">STOP / FEIERABEND</button>
+            <button id="btn-stop" class="btn-stop">STOP / FEIERABEND</button>
         </div>
 
         <div class="history-container" id="history-container">
-            <div class="history-header" onclick="toggleHistory()">
+            <div class="history-header" id="history-header">
                 <span>Heutiger Verlauf</span>
-                <button id="toggle-history">▲</button>
+                <button id="toggle-history-btn">▲</button>
             </div>
             <div id="log-list" class="log-list collapsed">
                 </div>
         </div>
 
         <div class="tools">
-            <button onclick="exportData()">💾 Backup CSV</button>
-            <button onclick="clearData()" style="background:#444;">🗑️ Reset</button>
+            <button id="btn-export">💾 Backup CSV</button>
+            <button id="btn-reset" style="background:#444;">🗑️ Reset</button>
         </div>
     </div>
 
@@ -74,8 +74,8 @@
             <input type="time" id="edit-end">
 
             <div class="modal-actions">
-                <button onclick="saveEdit()" class="btn-save">Speichern</button>
-                <button onclick="closeModal()" class="btn-cancel">Abbrechen</button>
+                <button id="btn-save-edit" class="btn-save">Speichern</button>
+                <button id="btn-cancel-edit" class="btn-cancel">Abbrechen</button>
             </div>
             <p class="hint">Folgezeiten passen sich automatisch an.</p>
         </div>
