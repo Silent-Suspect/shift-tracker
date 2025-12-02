@@ -313,7 +313,7 @@ function getDisplayLabel(type) {
         case 'Wartezeit': return '⏳ Warten';
         case 'Pause': return '☕ Pause';
         case 'Übergang': return '<img src="transit-icon.png" class="custom-icon" alt=""> Übergang';
-        case 'Gastfahrt': return '🚕 Gastfahrt';
+        case 'Gastfahrt': return '<img src="taxi-icon.png" class="custom-icon" alt=""> Gastfahrt';
         case 'An-/Abreise': return '🚗 An-/Abreise';
         default: return type;
     }
@@ -481,3 +481,4 @@ function updateTimerDisplay() {
         typeEl.classList.remove('status-success');
     }
 }
+
