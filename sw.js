@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schicht-pwa-v14'; // <--- Version 14!
+const CACHE_NAME = 'schicht-pwa-v15'; // <--- Version 15!
 const ASSETS = [
   './',
   './index.html',
