@@ -8,8 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icon-192.png">
-</head>
+    <link rel="apple-touch-icon" href="assets/icon-192.png"> </head>
 <body>
 
     <div class="app-container">
@@ -23,10 +22,10 @@
             <button id="btn-wait" class="btn btn-wait">⏳ Warten</button>
             <button id="btn-break" class="btn btn-break">☕ Pause</button>
             <button id="btn-transit" class="btn btn-transit">
-                <img src="transit-icon.png" class="custom-icon" alt=""> Übergang
+                <img src="assets/transit-icon.png" class="custom-icon" alt=""> Übergang
             </button>
             <button id="btn-drive" class="btn btn-drive">
-                <img src="taxi-icon.png" class="custom-icon" alt=""> Gastfahrt
+                <img src="assets/taxi-icon.png" class="custom-icon" alt=""> Gastfahrt
             </button>
             <button id="btn-commute" class="btn btn-commute">🚗 An-/Abreise</button>
         </div>
@@ -86,19 +85,14 @@
 
             <div id="delete-options" class="hidden">
                 <h4 style="margin-top:0; color:var(--danger)">Lösch-Optionen</h4>
-                <p style="font-size:0.9rem; color:#bbb;">Wie soll mit der entstehenden Zeit-Lücke verfahren werden?</p>
-                
                 <div class="gap-actions">
                     <button id="btn-gap-merge" class="btn-gap-merge hidden">🔄 Verschmelzen (Gleiche Typen)</button>
-                    
                     <button id="btn-gap-prev" class="btn-gap">⬅️ Vorgänger dehnen</button>
                     <button id="btn-gap-next" class="btn-gap">➡️ Nachfolger ziehen</button>
                     <button id="btn-gap-none" class="btn-gap-simple">Lücke lassen (nur löschen)</button>
                 </div>
-                
                 <button id="btn-cancel-delete" class="btn-cancel" style="margin-top:15px; width:100%">Doch nicht löschen</button>
             </div>
-
         </div>
     </div>
 
@@ -115,7 +109,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="js/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => console.log('SW Registered'));
@@ -123,4 +117,3 @@
     </script>
 </body>
 </html>
-
