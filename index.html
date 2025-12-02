@@ -21,12 +21,10 @@
         <div class="controls-grid">
             <button id="btn-work" class="btn btn-work">🚂 Arbeit</button>
             <button id="btn-wait" class="btn btn-wait">⏳ Warten</button>
-            
             <button id="btn-break" class="btn btn-break">☕ Pause</button>
             <button id="btn-transit" class="btn btn-transit">
                 <img src="transit-icon.png" class="custom-icon" alt=""> Übergang
             </button>
-            
             <button id="btn-drive" class="btn btn-drive">🚕 Gastfahrt</button>
             <button id="btn-commute" class="btn btn-commute">🚗 An-/Abreise</button>
         </div>
@@ -42,12 +40,12 @@
                 <span>Heutiger Verlauf</span>
                 <button id="toggle-history-btn">▲</button>
             </div>
-            <div id="log-list" class="log-list collapsed">
-                </div>
+            <div id="log-list" class="log-list collapsed"></div>
         </div>
 
         <div class="tools">
-            <button id="btn-export">💾 Backup CSV</button>
+            <button id="btn-export">💾 CSV</button>
+            <button id="btn-cloud" style="background: #2980b9;">☁️ Cloud</button>
             <button id="btn-reset" style="background:#444;">🗑️ Reset</button>
         </div>
     </div>
@@ -56,7 +54,6 @@
         <div class="modal-content">
             <h3>Eintrag korrigieren</h3>
             <input type="hidden" id="edit-id">
-            
             <label>Typ:</label>
             <select id="edit-type">
                 <option value="Arbeit">🚂 Arbeit</option>
@@ -66,26 +63,36 @@
                 <option value="Gastfahrt">🚕 Gastfahrt</option>
                 <option value="An-/Abreise">🚗 An-/Abreise</option>
             </select>
-
             <label>Startzeit:</label>
             <input type="time" id="edit-start">
-
             <label>Endzeit:</label>
             <input type="time" id="edit-end">
-
             <div class="modal-actions">
                 <button id="btn-save-edit" class="btn-save">Speichern</button>
                 <button id="btn-cancel-edit" class="btn-cancel">Abbrechen</button>
             </div>
-            <p class="hint">Folgezeiten passen sich automatisch an.</p>
+        </div>
+    </div>
+
+    <div id="cloud-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>☁️ Cloud Sync</h3>
+            <p class="hint">Bitte Zugangscode eingeben.</p>
+            
+            <label>Code:</label>
+            <input type="password" id="cloud-pw" placeholder="****" style="text-align:center; font-size:1.2rem; letter-spacing: 2px;">
+
+            <div class="modal-actions">
+                <button id="btn-save-cloud" class="btn-save">Senden</button>
+                <button id="btn-cancel-cloud" class="btn-cancel">Abbrechen</button>
+            </div>
         </div>
     </div>
 
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-            .then(() => console.log('Service Worker Registered'));
+            navigator.serviceWorker.register('sw.js').then(() => console.log('SW Registered'));
         }
     </script>
 </body>
