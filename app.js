@@ -6,9 +6,9 @@ let timerInterval = null;
 // KONFIGURATION
 const MIN_REST_HOURS = 10; 
 const SHIFT_GAP_THRESHOLD_HOURS = 6; 
-const AUTO_RESUME_THRESHOLD_MINUTES = 5; // < 5 Min = Auto Resume
+const AUTO_RESUME_THRESHOLD_MINUTES = 5; 
 
-// HIER DEINE URL EINTRAGEN:
+// URL
 const GATEKEEPER_URL = "https://script.google.com/macros/s/HIER_DEINE_LANGE_ID/exec";
 
 // Initialisierung
@@ -47,9 +47,11 @@ function initEventListeners() {
     document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
     document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
     
-    // DELETE FLOW LISTENERS
     document.getElementById('btn-init-delete').addEventListener('click', initiateDelete);
     document.getElementById('btn-cancel-delete').addEventListener('click', resetDeleteUI);
+    
+    // NEU: Merge Button Listener
+    document.getElementById('btn-gap-merge').addEventListener('click', () => executeDelete('merge'));
     
     document.getElementById('btn-gap-prev').addEventListener('click', () => executeDelete('stretch-prev'));
     document.getElementById('btn-gap-next').addEventListener('click', () => executeDelete('pull-next'));
@@ -157,9 +159,7 @@ function stopCurrentBlock(endTime = new Date()) {
 // --- EDIT & SMART DELETE LOGIC ---
 
 window.editBlock = function(id) {
-    // Reset UI State
     resetDeleteUI();
-    
     const block = shifts.find(s => s.id === id);
     if (!block) return;
     document.getElementById('edit-id').value = id;
@@ -169,7 +169,6 @@ window.editBlock = function(id) {
     document.getElementById('edit-modal').classList.remove('hidden');
 }
 
-// Schritt 1: Löschen initiieren und entscheiden, ob Quick-Undo oder Gap-Dialog
 function initiateDelete() {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = shifts.findIndex(s => s.id === id);
@@ -178,50 +177,46 @@ function initiateDelete() {
     const block = shifts[blockIndex];
     const isCurrent = (block.id === activeShiftId);
     
-    // --- FALL A: Aktueller Block ---
+    // Fall A: Aktueller Block
     if (isCurrent) {
         const now = new Date();
         const start = new Date(block.start);
         const durationMins = (now - start) / 60000;
-
         if (durationMins < AUTO_RESUME_THRESHOLD_MINUTES) {
-            // Quick Undo (Sofort löschen & Vorgänger aktivieren)
             executeDelete('undo-current');
         } else {
-            // Nachfrage bei längerem Lauf
             if (confirm("Der Block läuft schon länger als 5 Minuten.\nMöchtest du den vorherigen Block wieder aufnehmen?")) {
                 executeDelete('undo-current');
             } else {
-                executeDelete('none'); // Nur löschen/stoppen
+                executeDelete('none');
             }
         }
         return;
     }
 
-    // --- FALL B: Vergangener Block (Gap Management UI anzeigen) ---
+    // Fall B: Vergangener Block
     document.getElementById('edit-form').classList.add('hidden');
     document.getElementById('delete-options').classList.remove('hidden');
 
-    // Buttons intelligent ein/ausblenden
+    const mergeBtn = document.getElementById('btn-gap-merge');
     const prevBtn = document.getElementById('btn-gap-prev');
     const nextBtn = document.getElementById('btn-gap-next');
 
-    // Check Vorgänger
-    if (shifts[blockIndex - 1]) {
-        prevBtn.style.display = 'block';
+    const prevBlock = shifts[blockIndex - 1];
+    const nextBlock = shifts[blockIndex + 1];
+
+    // SANDWICH CHECK: Gleicher Typ davor und danach?
+    // Und: Nachfolger muss ein "abgeschlossener" Block sein (oder zumindest existent)
+    if (prevBlock && nextBlock && prevBlock.type === nextBlock.type) {
+        mergeBtn.classList.remove('hidden'); // Zeige den Magic Button
     } else {
-        prevBtn.style.display = 'none';
+        mergeBtn.classList.add('hidden');
     }
 
-    // Check Nachfolger
-    if (shifts[blockIndex + 1]) {
-        nextBtn.style.display = 'block';
-    } else {
-        nextBtn.style.display = 'none';
-    }
+    if (prevBlock) prevBtn.style.display = 'block'; else prevBtn.style.display = 'none';
+    if (nextBlock) nextBtn.style.display = 'block'; else nextBtn.style.display = 'none';
 }
 
-// Schritt 2: Die eigentliche Löschung durchführen
 function executeDelete(strategy) {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = shifts.findIndex(s => s.id === id);
@@ -231,31 +226,28 @@ function executeDelete(strategy) {
     const prevBlock = shifts[blockIndex - 1];
     const nextBlock = shifts[blockIndex + 1];
 
-    // Logik anwenden
     if (strategy === 'undo-current') {
-        // Aktuellen löschen
         shifts.splice(blockIndex, 1);
         activeShiftId = null;
-        
-        // Vorgänger reaktivieren
-        if (prevBlock) {
-            prevBlock.end = null;
-            activeShiftId = prevBlock.id;
-        }
+        if (prevBlock) { prevBlock.end = null; activeShiftId = prevBlock.id; }
     } 
+    // NEU: MERGE LOGIK
+    else if (strategy === 'merge' && prevBlock && nextBlock) {
+        // 1. Vorgänger übernimmt das Ende des Nachfolgers
+        prevBlock.end = nextBlock.end;
+        // 2. Wir löschen den aktuellen UND den Nachfolger
+        // Wichtig: Da wir Indexe verändern, löschen wir am besten 2 Elemente ab blockIndex
+        shifts.splice(blockIndex, 2);
+    }
     else if (strategy === 'stretch-prev' && prevBlock) {
-        // Vorgänger erbt das Ende des gelöschten Blocks (oder dessen Nachfolger-Start)
-        // Sicherer ist: Vorgänger endet dort, wo der gelöschte Block endete.
         prevBlock.end = block.end;
         shifts.splice(blockIndex, 1);
     } 
     else if (strategy === 'pull-next' && nextBlock) {
-        // Nachfolger erbt den Start des gelöschten Blocks
         nextBlock.start = block.start;
         shifts.splice(blockIndex, 1);
     } 
     else {
-        // 'none' - Einfach nur löschen
         if (block.id === activeShiftId) activeShiftId = null;
         shifts.splice(blockIndex, 1);
     }
@@ -268,6 +260,8 @@ function executeDelete(strategy) {
 function resetDeleteUI() {
     document.getElementById('edit-form').classList.remove('hidden');
     document.getElementById('delete-options').classList.add('hidden');
+    // Sicherstellen dass Merge Button beim Reset versteckt wird
+    document.getElementById('btn-gap-merge').classList.add('hidden');
 }
 
 function saveEdit() {
@@ -343,7 +337,7 @@ function toggleHistory() {
 function closeModal() {
     document.getElementById('edit-modal').classList.add('hidden');
     document.getElementById('cloud-modal').classList.add('hidden');
-    resetDeleteUI(); // Sicherstellen dass wir beim nächsten Öffnen das Formular sehen
+    resetDeleteUI();
 }
 function loadData() {
     const stored = localStorage.getItem('shift_data');
