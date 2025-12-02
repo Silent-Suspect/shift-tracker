@@ -8,8 +8,10 @@ const MIN_REST_HOURS = 10;
 const SHIFT_GAP_THRESHOLD_HOURS = 6; 
 const AUTO_RESUME_THRESHOLD_MINUTES = 5; 
 
-// URL
-const GATEKEEPER_URL = "https://script.google.com/macros/s/HIER_DEINE_LANGE_ID/exec";
+// ---------------------------------------------------------
+// HIER DEINE URL EINTRAGEN:
+const GATEKEEPER_URL = "https://script.google.com/macros/s/AKfycbxSjCl4LOJpjhl9MuDxOP9TLupsa7-HFHRJvL11PNxx_AXUhSYosOiLYko2XCpVHw/exec";
+// ---------------------------------------------------------
 
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
@@ -47,12 +49,12 @@ function initEventListeners() {
     document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
     document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
     
+    // DELETE FLOW LISTENERS
     document.getElementById('btn-init-delete').addEventListener('click', initiateDelete);
     document.getElementById('btn-cancel-delete').addEventListener('click', resetDeleteUI);
     
-    // NEU: Merge Button Listener
+    // Gap Options
     document.getElementById('btn-gap-merge').addEventListener('click', () => executeDelete('merge'));
-    
     document.getElementById('btn-gap-prev').addEventListener('click', () => executeDelete('stretch-prev'));
     document.getElementById('btn-gap-next').addEventListener('click', () => executeDelete('pull-next'));
     document.getElementById('btn-gap-none').addEventListener('click', () => executeDelete('none'));
@@ -206,15 +208,14 @@ function initiateDelete() {
     const nextBlock = shifts[blockIndex + 1];
 
     // SANDWICH CHECK: Gleicher Typ davor und danach?
-    // Und: Nachfolger muss ein "abgeschlossener" Block sein (oder zumindest existent)
     if (prevBlock && nextBlock && prevBlock.type === nextBlock.type) {
-        mergeBtn.classList.remove('hidden'); // Zeige den Magic Button
+        mergeBtn.classList.remove('hidden'); 
     } else {
         mergeBtn.classList.add('hidden');
     }
 
-    if (prevBlock) prevBtn.style.display = 'block'; else prevBtn.style.display = 'none';
-    if (nextBlock) nextBtn.style.display = 'block'; else nextBtn.style.display = 'none';
+    if (prevBlock) prevBtn.style.display = 'flex'; else prevBtn.style.display = 'none';
+    if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
 }
 
 function executeDelete(strategy) {
@@ -231,12 +232,22 @@ function executeDelete(strategy) {
         activeShiftId = null;
         if (prevBlock) { prevBlock.end = null; activeShiftId = prevBlock.id; }
     } 
-    // NEU: MERGE LOGIK
+    // NEU: MERGE LOGIK (inkl. State Fix)
     else if (strategy === 'merge' && prevBlock && nextBlock) {
+        // War der Nachfolger (den wir gleich löschen) der aktive Block?
+        const wasActive = (nextBlock.id === activeShiftId);
+
         // 1. Vorgänger übernimmt das Ende des Nachfolgers
         prevBlock.end = nextBlock.end;
-        // 2. Wir löschen den aktuellen UND den Nachfolger
-        // Wichtig: Da wir Indexe verändern, löschen wir am besten 2 Elemente ab blockIndex
+        
+        // 2. Falls der Nachfolger aktiv war, ist der Vorgänger jetzt auch offen (end: null)
+        // UND er wird zum neuen aktiven Block
+        if (wasActive) {
+            prevBlock.end = null;
+            activeShiftId = prevBlock.id;
+        }
+
+        // 3. Wir löschen den aktuellen (Mitte) UND den Nachfolger (Ende)
         shifts.splice(blockIndex, 2);
     }
     else if (strategy === 'stretch-prev' && prevBlock) {
@@ -255,12 +266,12 @@ function executeDelete(strategy) {
     saveData();
     updateUI();
     closeModal();
+    updateTimerDisplay(); // WICHTIG: Timer sofort updaten
 }
 
 function resetDeleteUI() {
     document.getElementById('edit-form').classList.remove('hidden');
     document.getElementById('delete-options').classList.add('hidden');
-    // Sicherstellen dass Merge Button beim Reset versteckt wird
     document.getElementById('btn-gap-merge').classList.add('hidden');
 }
 
