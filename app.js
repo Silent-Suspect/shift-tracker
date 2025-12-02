@@ -6,6 +6,7 @@ let timerInterval = null;
 // KONFIGURATION
 const MIN_REST_HOURS = 10; 
 const SHIFT_GAP_THRESHOLD_HOURS = 6; 
+const AUTO_RESUME_THRESHOLD_MINUTES = 5; // < 5 Min = Auto Resume
 
 // HIER DEINE URL EINTRAGEN:
 const GATEKEEPER_URL = "https://script.google.com/macros/s/HIER_DEINE_LANGE_ID/exec";
@@ -46,44 +47,33 @@ function initEventListeners() {
     document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
     document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
     
-    // NEU: Löschen Button Listener
-    document.getElementById('btn-delete-entry').addEventListener('click', deleteEntry);
+    // DELETE FLOW LISTENERS
+    document.getElementById('btn-init-delete').addEventListener('click', initiateDelete);
+    document.getElementById('btn-cancel-delete').addEventListener('click', resetDeleteUI);
+    
+    document.getElementById('btn-gap-prev').addEventListener('click', () => executeDelete('stretch-prev'));
+    document.getElementById('btn-gap-next').addEventListener('click', () => executeDelete('pull-next'));
+    document.getElementById('btn-gap-none').addEventListener('click', () => executeDelete('none'));
 }
 
 function updateConnectionStatus() {
     const el = document.getElementById('status-indicator');
-    if (navigator.onLine) {
-        el.innerText = 'Online';
-        el.className = 'online'; 
-    } else {
-        el.innerText = 'Offline';
-        el.className = 'offline';
-    }
+    if (navigator.onLine) { el.innerText = 'Online'; el.className = 'online'; } 
+    else { el.innerText = 'Offline'; el.className = 'offline'; }
 }
 
 // --- CLOUD LOGIC ---
-
 function openCloudModal() {
     const pw = localStorage.getItem('cloud_pw') || '';
     document.getElementById('cloud-pw').value = pw;
     document.getElementById('cloud-modal').classList.remove('hidden');
 }
-
-function closeCloudModal() {
-    document.getElementById('cloud-modal').classList.add('hidden');
-}
+function closeCloudModal() { document.getElementById('cloud-modal').classList.add('hidden'); }
 
 async function handleCloudUpload() {
     const pw = document.getElementById('cloud-pw').value.trim();
-    if (!pw) {
-        alert("Bitte Code eingeben.");
-        return;
-    }
-
-    if (shifts.length === 0) {
-        alert("Keine Daten zum Senden.");
-        return;
-    }
+    if (!pw) { alert("Bitte Code eingeben."); return; }
+    if (shifts.length === 0) { alert("Keine Daten zum Senden."); return; }
 
     const btn = document.getElementById('btn-save-cloud');
     const originalText = btn.innerText;
@@ -92,16 +82,14 @@ async function handleCloudUpload() {
 
     try {
         let realDbUrl = localStorage.getItem('real_db_url');
-
         if (!realDbUrl || localStorage.getItem('cloud_pw') !== pw) {
-            console.log("Frage Türsteher nach URL...");
             const gateResponse = await fetch(GATEKEEPER_URL, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ password: pw })
             });
             const gateData = await gateResponse.json();
-            if (gateData.result !== "success") throw new Error("Falscher Code! Türsteher sagt Nein.");
+            if (gateData.result !== "success") throw new Error("Falscher Code!");
             realDbUrl = gateData.url;
             localStorage.setItem('real_db_url', realDbUrl);
             localStorage.setItem('cloud_pw', pw);
@@ -116,8 +104,7 @@ async function handleCloudUpload() {
                 let duration = 0;
                 if (end) duration = Math.floor((end - start) / 60000);
                 return {
-                    id: s.id,
-                    type: s.type,
+                    id: s.id, type: s.type,
                     startDate: start.toLocaleDateString(),
                     startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                     endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
@@ -132,12 +119,9 @@ async function handleCloudUpload() {
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
-
-        alert("Erfolg! Daten wurden übertragen.");
+        alert("Erfolg! Daten übertragen.");
         closeCloudModal();
-
     } catch (e) {
-        console.error(e);
         alert("Fehler: " + e.message);
         localStorage.removeItem('real_db_url');
     } finally {
@@ -146,8 +130,7 @@ async function handleCloudUpload() {
     }
 }
 
-// --- Core Logic ---
-
+// --- CORE LOGIC ---
 function startBlock(type) {
     const now = new Date();
     if (activeShiftId) {
@@ -171,8 +154,12 @@ function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
-// Wrapper für Edit
+// --- EDIT & SMART DELETE LOGIC ---
+
 window.editBlock = function(id) {
+    // Reset UI State
+    resetDeleteUI();
+    
     const block = shifts.find(s => s.id === id);
     if (!block) return;
     document.getElementById('edit-id').value = id;
@@ -182,23 +169,105 @@ window.editBlock = function(id) {
     document.getElementById('edit-modal').classList.remove('hidden');
 }
 
-// NEU: Lösch-Funktion
-function deleteEntry() {
+// Schritt 1: Löschen initiieren und entscheiden, ob Quick-Undo oder Gap-Dialog
+function initiateDelete() {
     const id = parseInt(document.getElementById('edit-id').value);
+    const blockIndex = shifts.findIndex(s => s.id === id);
+    if (blockIndex === -1) return;
     
-    if (confirm("Eintrag unwiderruflich löschen?")) {
-        // Prüfen, ob wir den AKTIVEN Block löschen
-        if (activeShiftId === id) {
-            activeShiftId = null; // Timer stoppen
-        }
+    const block = shifts[blockIndex];
+    const isCurrent = (block.id === activeShiftId);
+    
+    // --- FALL A: Aktueller Block ---
+    if (isCurrent) {
+        const now = new Date();
+        const start = new Date(block.start);
+        const durationMins = (now - start) / 60000;
 
-        // Filtern: Alle behalten, die NICHT diese ID haben
-        shifts = shifts.filter(s => s.id !== id);
-        
-        saveData();
-        updateUI();
-        closeModal();
+        if (durationMins < AUTO_RESUME_THRESHOLD_MINUTES) {
+            // Quick Undo (Sofort löschen & Vorgänger aktivieren)
+            executeDelete('undo-current');
+        } else {
+            // Nachfrage bei längerem Lauf
+            if (confirm("Der Block läuft schon länger als 5 Minuten.\nMöchtest du den vorherigen Block wieder aufnehmen?")) {
+                executeDelete('undo-current');
+            } else {
+                executeDelete('none'); // Nur löschen/stoppen
+            }
+        }
+        return;
     }
+
+    // --- FALL B: Vergangener Block (Gap Management UI anzeigen) ---
+    document.getElementById('edit-form').classList.add('hidden');
+    document.getElementById('delete-options').classList.remove('hidden');
+
+    // Buttons intelligent ein/ausblenden
+    const prevBtn = document.getElementById('btn-gap-prev');
+    const nextBtn = document.getElementById('btn-gap-next');
+
+    // Check Vorgänger
+    if (shifts[blockIndex - 1]) {
+        prevBtn.style.display = 'block';
+    } else {
+        prevBtn.style.display = 'none';
+    }
+
+    // Check Nachfolger
+    if (shifts[blockIndex + 1]) {
+        nextBtn.style.display = 'block';
+    } else {
+        nextBtn.style.display = 'none';
+    }
+}
+
+// Schritt 2: Die eigentliche Löschung durchführen
+function executeDelete(strategy) {
+    const id = parseInt(document.getElementById('edit-id').value);
+    const blockIndex = shifts.findIndex(s => s.id === id);
+    if (blockIndex === -1) return;
+
+    const block = shifts[blockIndex];
+    const prevBlock = shifts[blockIndex - 1];
+    const nextBlock = shifts[blockIndex + 1];
+
+    // Logik anwenden
+    if (strategy === 'undo-current') {
+        // Aktuellen löschen
+        shifts.splice(blockIndex, 1);
+        activeShiftId = null;
+        
+        // Vorgänger reaktivieren
+        if (prevBlock) {
+            prevBlock.end = null;
+            activeShiftId = prevBlock.id;
+        }
+    } 
+    else if (strategy === 'stretch-prev' && prevBlock) {
+        // Vorgänger erbt das Ende des gelöschten Blocks (oder dessen Nachfolger-Start)
+        // Sicherer ist: Vorgänger endet dort, wo der gelöschte Block endete.
+        prevBlock.end = block.end;
+        shifts.splice(blockIndex, 1);
+    } 
+    else if (strategy === 'pull-next' && nextBlock) {
+        // Nachfolger erbt den Start des gelöschten Blocks
+        nextBlock.start = block.start;
+        shifts.splice(blockIndex, 1);
+    } 
+    else {
+        // 'none' - Einfach nur löschen
+        if (block.id === activeShiftId) activeShiftId = null;
+        shifts.splice(blockIndex, 1);
+    }
+
+    saveData();
+    updateUI();
+    closeModal();
+}
+
+function resetDeleteUI() {
+    document.getElementById('edit-form').classList.remove('hidden');
+    document.getElementById('delete-options').classList.add('hidden');
 }
 
 function saveEdit() {
@@ -233,7 +302,6 @@ function saveEdit() {
 }
 
 // --- Helpers ---
-
 function getDisplayLabel(type) {
     switch(type) {
         case 'Arbeit': return '🚂 Arbeit';
@@ -245,7 +313,6 @@ function getDisplayLabel(type) {
         default: return type;
     }
 }
-
 function migrateData() {
     let changed = false;
     shifts.forEach(s => {
@@ -253,7 +320,6 @@ function migrateData() {
     });
     if (changed) saveData();
 }
-
 function setTime(dateObj, timeString) {
     const [hours, minutes] = timeString.split(':');
     const newDate = new Date(dateObj);
@@ -262,26 +328,23 @@ function setTime(dateObj, timeString) {
     newDate.setSeconds(0);
     return newDate;
 }
-
 function formatTimeForInput(isoString) {
     const d = new Date(isoString);
     const h = String(d.getHours()).padStart(2, '0');
     const m = String(d.getMinutes()).padStart(2, '0');
     return `${h}:${m}`;
 }
-
 function toggleHistory() {
     const list = document.getElementById('log-list');
     const btn = document.getElementById('toggle-history-btn');
     list.classList.toggle('collapsed');
     btn.innerText = list.classList.contains('collapsed') ? '▲' : '▼';
 }
-
 function closeModal() {
     document.getElementById('edit-modal').classList.add('hidden');
     document.getElementById('cloud-modal').classList.add('hidden');
+    resetDeleteUI(); // Sicherstellen dass wir beim nächsten Öffnen das Formular sehen
 }
-
 function loadData() {
     const stored = localStorage.getItem('shift_data');
     if (stored) {
@@ -292,13 +355,10 @@ function loadData() {
         } catch (e) { shifts = []; }
     }
 }
-
 function saveData() { localStorage.setItem('shift_data', JSON.stringify(shifts)); }
-
 function clearData() {
     if(confirm("Alles löschen?")) { shifts = []; activeShiftId = null; saveData(); updateUI(); }
 }
-
 function exportData() {
     let csvContent = "data:text/csv;charset=utf-8,ID,Typ,StartDatum,StartZeit,EndeZeit,Dauer(Min)\n";
     shifts.forEach(e => {
