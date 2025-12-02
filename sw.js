@@ -1,11 +1,12 @@
-const CACHE_NAME = 'schicht-pwa-v16'; // <--- Version 16!
+const CACHE_NAME = 'schicht-pwa-v18'; // <--- Version 18!
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './transit-icon.png'
+  './transit-icon.png',
+  './taxi-icon.png' // <--- NEU DAZU! (Namen prüfen!)
 ];
 
 self.addEventListener('install', (e) => {
@@ -33,3 +34,4 @@ self.addEventListener('fetch', (e) => {
     caches.match(e.request).then((response) => response || fetch(e.request))
   );
 });
+
