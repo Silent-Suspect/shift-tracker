@@ -1,12 +1,20 @@
-const CACHE_NAME = 'schicht-pwa-v18'; // <--- Version 18!
+const CACHE_NAME = 'schicht-pwa-v19';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './app.js',
   './manifest.json',
-  './transit-icon.png',
-  './taxi-icon.png' // <--- NEU DAZU! (Namen prüfen!)
+  // JS Module
+  './js/main.js',
+  './js/state.js',
+  './js/utils.js',
+  './js/logic.js',
+  './js/ui.js',
+  './js/cloud.js',
+  // Bilder
+  './assets/transit-icon.png',
+  './assets/taxi-icon.png'
+  // './assets/icon-192.png' (Falls du das Icon hochlädst, hier entkommentieren!)
 ];
 
 self.addEventListener('install', (e) => {
@@ -34,4 +42,3 @@ self.addEventListener('fetch', (e) => {
     caches.match(e.request).then((response) => response || fetch(e.request))
   );
 });
-
