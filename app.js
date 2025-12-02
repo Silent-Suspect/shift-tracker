@@ -7,8 +7,8 @@ let timerInterval = null;
 const MIN_REST_HOURS = 10; 
 const SHIFT_GAP_THRESHOLD_HOURS = 6; 
 
-// HIER DIE URL VOM "TÜRSTEHER" SCRIPT EINTRAGEN (aus Schritt 2):
-const GATEKEEPER_URL = "https://script.google.com/macros/s/AKfycbxSjCl4LOJpjhl9MuDxOP9TLupsa7-HFHRJvL11PNxx_AXUhSYosOiLYko2XCpVHw/exec";
+// HIER DEINE URL EINTRAGEN:
+const GATEKEEPER_URL = "https://script.google.com/macros/s/HIER_DEINE_LANGE_ID/exec";
 
 // Initialisierung
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,11 +40,14 @@ function initEventListeners() {
     document.getElementById('btn-reset').addEventListener('click', clearData);
     
     document.getElementById('btn-cloud').addEventListener('click', openCloudModal);
-    document.getElementById('btn-save-cloud').addEventListener('click', handleCloudUpload); // Neue Handler Funktion
+    document.getElementById('btn-save-cloud').addEventListener('click', handleCloudUpload);
     document.getElementById('btn-cancel-cloud').addEventListener('click', closeCloudModal);
 
     document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
     document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
+    
+    // NEU: Löschen Button Listener
+    document.getElementById('btn-delete-entry').addEventListener('click', deleteEntry);
 }
 
 function updateConnectionStatus() {
@@ -58,10 +61,9 @@ function updateConnectionStatus() {
     }
 }
 
-// --- CLOUD LOGIC (GATEKEEPER PATTERN) ---
+// --- CLOUD LOGIC ---
 
 function openCloudModal() {
-    // Wenn wir schon ein PW haben, füllen wir es vor
     const pw = localStorage.getItem('cloud_pw') || '';
     document.getElementById('cloud-pw').value = pw;
     document.getElementById('cloud-modal').classList.remove('hidden');
@@ -89,35 +91,25 @@ async function handleCloudUpload() {
     btn.disabled = true;
 
     try {
-        // Schritt 1: Prüfen ob wir die geheime URL schon haben
         let realDbUrl = localStorage.getItem('real_db_url');
 
-        // Wenn nicht (oder wenn wir Passwort geändert haben), fragen wir den Türsteher
         if (!realDbUrl || localStorage.getItem('cloud_pw') !== pw) {
             console.log("Frage Türsteher nach URL...");
             const gateResponse = await fetch(GATEKEEPER_URL, {
                 method: "POST",
-                headers: { "Content-Type": "text/plain" }, // text/plain verhindert CORS Preflight Probleme bei GAS
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ password: pw })
             });
-            
             const gateData = await gateResponse.json();
-            
-            if (gateData.result !== "success") {
-                throw new Error("Falscher Code! Türsteher sagt Nein.");
-            }
-            
+            if (gateData.result !== "success") throw new Error("Falscher Code! Türsteher sagt Nein.");
             realDbUrl = gateData.url;
-            // Speichern für die Zukunft
             localStorage.setItem('real_db_url', realDbUrl);
             localStorage.setItem('cloud_pw', pw);
         }
 
-        // Schritt 2: Daten an die geheime URL senden
         btn.innerText = "Sende Daten...";
-        
         const payload = {
-            password: pw, // DB Script prüft auch nochmal das PW
+            password: pw,
             data: shifts.map(s => {
                 const start = new Date(s.start);
                 const end = s.end ? new Date(s.end) : null;
@@ -134,21 +126,19 @@ async function handleCloudUpload() {
             })
         };
 
-        const dbResponse = await fetch(realDbUrl, {
+        await fetch(realDbUrl, {
             method: "POST",
-            mode: "no-cors", // Fire and Forget für Sheet (schneller, weniger Fehleranfällig bei Redirects)
+            mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
 
-        // Bei no-cors können wir den Status nicht lesen, wir gehen von Erfolg aus, wenn kein Netzwerkfehler kam.
         alert("Erfolg! Daten wurden übertragen.");
         closeCloudModal();
 
     } catch (e) {
         console.error(e);
         alert("Fehler: " + e.message);
-        // Falls URL falsch war, löschen wir sie, damit beim nächsten Mal neu gefragt wird
         localStorage.removeItem('real_db_url');
     } finally {
         btn.innerText = originalText;
@@ -156,7 +146,7 @@ async function handleCloudUpload() {
     }
 }
 
-// --- Core Logic (Rest unverändert) ---
+// --- Core Logic ---
 
 function startBlock(type) {
     const now = new Date();
@@ -181,6 +171,7 @@ function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
+// Wrapper für Edit
 window.editBlock = function(id) {
     const block = shifts.find(s => s.id === id);
     if (!block) return;
@@ -189,6 +180,25 @@ window.editBlock = function(id) {
     document.getElementById('edit-start').value = formatTimeForInput(block.start);
     document.getElementById('edit-end').value = block.end ? formatTimeForInput(block.end) : '';
     document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+// NEU: Lösch-Funktion
+function deleteEntry() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    
+    if (confirm("Eintrag unwiderruflich löschen?")) {
+        // Prüfen, ob wir den AKTIVEN Block löschen
+        if (activeShiftId === id) {
+            activeShiftId = null; // Timer stoppen
+        }
+
+        // Filtern: Alle behalten, die NICHT diese ID haben
+        shifts = shifts.filter(s => s.id !== id);
+        
+        saveData();
+        updateUI();
+        closeModal();
+    }
 }
 
 function saveEdit() {
