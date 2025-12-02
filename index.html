@@ -54,30 +54,47 @@
         <div class="modal-content">
             <h3>Eintrag korrigieren</h3>
             <input type="hidden" id="edit-id">
-            <label>Typ:</label>
-            <select id="edit-type">
-                <option value="Arbeit">🚂 Arbeit</option>
-                <option value="Wartezeit">⏳ Warten</option>
-                <option value="Pause">☕ Pause</option>
-                <option value="Übergang">🚶 Übergang (Icon)</option>
-                <option value="Gastfahrt">🚕 Gastfahrt</option>
-                <option value="An-/Abreise">🚗 An-/Abreise</option>
-            </select>
-            <label>Startzeit:</label>
-            <input type="time" id="edit-start">
-            <label>Endzeit:</label>
-            <input type="time" id="edit-end">
             
-            <p class="hint">Folgezeiten passen sich automatisch an.</p>
+            <div id="edit-form">
+                <label>Typ:</label>
+                <select id="edit-type">
+                    <option value="Arbeit">🚂 Arbeit</option>
+                    <option value="Wartezeit">⏳ Warten</option>
+                    <option value="Pause">☕ Pause</option>
+                    <option value="Übergang">🚶 Übergang (Icon)</option>
+                    <option value="Gastfahrt">🚕 Gastfahrt</option>
+                    <option value="An-/Abreise">🚗 An-/Abreise</option>
+                </select>
+                <label>Startzeit:</label>
+                <input type="time" id="edit-start">
+                <label>Endzeit:</label>
+                <input type="time" id="edit-end">
+                
+                <p class="hint">Folgezeiten passen sich automatisch an.</p>
 
-            <div class="modal-actions">
-                <button id="btn-save-edit" class="btn-save">Speichern</button>
-                <button id="btn-cancel-edit" class="btn-cancel">Abbrechen</button>
+                <div class="modal-actions">
+                    <button id="btn-save-edit" class="btn-save">Speichern</button>
+                    <button id="btn-cancel-edit" class="btn-cancel">Abbrechen</button>
+                </div>
+
+                <div class="delete-section">
+                    <button id="btn-init-delete" class="btn-delete-entry">Eintrag löschen 🗑️</button>
+                </div>
             </div>
 
-            <div class="delete-section">
-                <button id="btn-delete-entry" class="btn-delete-entry">Eintrag löschen 🗑️</button>
+            <div id="delete-options" class="hidden">
+                <h4 style="margin-top:0; color:var(--danger)">Lösch-Optionen</h4>
+                <p style="font-size:0.9rem; color:#bbb;">Wie soll mit der entstehenden Zeit-Lücke verfahren werden?</p>
+                
+                <div class="gap-actions">
+                    <button id="btn-gap-prev" class="btn-gap">⬅️ Vorgänger dehnen</button>
+                    <button id="btn-gap-next" class="btn-gap">➡️ Nachfolger ziehen</button>
+                    <button id="btn-gap-none" class="btn-gap-simple">Lücke lassen (nur löschen)</button>
+                </div>
+                
+                <button id="btn-cancel-delete" class="btn-cancel" style="margin-top:15px; width:100%">Doch nicht löschen</button>
             </div>
+
         </div>
     </div>
 
