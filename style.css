@@ -5,13 +5,12 @@
     --text-sec: #b0b0b0;
     --accent: #3498db;
     
-    /* Farb-Palette */
-    --work: #2ecc71;    /* Grün */
-    --drive: #e67e22;   /* Orange */
-    --wait: #9b59b6;    /* Lila */
-    --break: #f1c40f;   /* Gelb */
-    --transit: #3498db; /* Blau */
-    --commute: #1abc9c; /* Türkis */
+    --work: #2ecc71;
+    --drive: #e67e22;
+    --wait: #9b59b6;
+    --break: #f1c40f;
+    --transit: #3498db;
+    --commute: #1abc9c;
     
     --danger: #e74c3c;
     --safe-area-bottom: env(safe-area-inset-bottom, 20px);
@@ -88,7 +87,6 @@ h1 { font-size: 1.2rem; margin: 0; }
     gap: 8px;
 }
 
-/* Custom Icon Image */
 .custom-icon {
     height: 1.4em;
     width: auto;
@@ -117,7 +115,6 @@ h1 { font-size: 1.2rem; margin: 0; }
 #active-type { display: block; font-size: 1.2rem; color: var(--text-sec); margin-bottom: 5px; }
 #active-timer { display: block; font-size: 2.5rem; font-family: monospace; font-weight: bold; }
 
-/* Grüner Timer wenn Ruhezeit erfüllt */
 .timer-success {
     color: var(--work) !important;
     text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
@@ -181,7 +178,6 @@ h1 { font-size: 1.2rem; margin: 0; }
     display: flex; 
 }
 
-/* Visueller Trenner für Schichten */
 .shift-divider {
     text-align: center;
     font-size: 0.9rem;
@@ -253,6 +249,29 @@ h1 { font-size: 1.2rem; margin: 0; }
 .btn-save { flex: 1; background: var(--accent); border: none; padding: 12px; border-radius: 8px; color: white; font-weight: bold;}
 .btn-cancel { flex: 1; background: #333; border: none; padding: 12px; border-radius: 8px; color: white; }
 .hint { font-size: 0.8rem; color: var(--danger); margin-top: 15px; text-align: center; display: block;}
+
+/* NEU: Styling für den Lösch-Button */
+.delete-section {
+    margin-top: 25px;
+    border-top: 1px solid #444;
+    padding-top: 15px;
+}
+.btn-delete-entry {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-delete-entry:active {
+    background: var(--danger);
+    color: white;
+}
 
 .tools { 
     margin-top: 10px; 
