@@ -57,16 +57,16 @@ export function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
+// UPDATE: Reset löscht nur noch Daten, keine Einstellungen
 export function clearData() {
-    if(confirm("Alles löschen? (Auch gespeicherte Passwörter)")) { 
+    if(confirm("Alle Schichtdaten löschen? (Passwort & Verbindung bleiben erhalten)")) { 
         state.shifts = []; 
-        state.deletedShifts = []; // Friedhof leeren
+        state.deletedShifts = []; 
         state.activeShiftId = null; 
         saveData(); 
         
-        localStorage.removeItem('cloud_pw');
-        localStorage.removeItem('cloud_url');
-        localStorage.removeItem('real_db_url');
+        // HIER WURDE GELÖSCHT: Wir behalten cloud_pw und real_db_url
+        // localStorage.removeItem('cloud_pw'); ...
         
         updateUI(); 
     }
@@ -115,7 +115,6 @@ export function saveEdit() {
     updateUI();
 }
 
-// Helper: Verschiebt Block in den Friedhof
 function softDelete(blockIndex) {
     const block = state.shifts[blockIndex];
     state.deletedShifts.push(block);
@@ -144,13 +143,11 @@ export function executeDelete(strategy) {
             state.activeShiftId = prevBlock.id;
         }
         
-        // Beim Mergen werden ZWEI Blöcke gelöscht (Mitte und Rechts)
-        // Wir suchen sie über ID, da sich Indizes verschieben
         const nextId = nextBlock.id;
-        softDelete(blockIndex); // Mitte weg
+        softDelete(blockIndex); 
         
         const nextIndexNew = state.shifts.findIndex(s => s.id === nextId);
-        if (nextIndexNew !== -1) softDelete(nextIndexNew); // Rechts weg
+        if (nextIndexNew !== -1) softDelete(nextIndexNew); 
     }
     else if (strategy === 'stretch-prev' && prevBlock) {
         prevBlock.end = block.end;
