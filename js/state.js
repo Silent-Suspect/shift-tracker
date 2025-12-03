@@ -1,8 +1,9 @@
 export const state = {
     shifts: [],
-    deletedShifts: [], // Speicher für gelöschte Einträge
+    deletedShifts: [], 
     activeShiftId: null,
-    timerInterval: null
+    timerInterval: null,
+    undoStack: [] // NEU: Speichert Snapshots für Rückgängig
 };
 
 // Konfiguration
