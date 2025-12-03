@@ -35,16 +35,13 @@ export function migrateData() {
 
 // --- SNAPSHOT & UNDO SYSTEM ---
 
-// Speichert den aktuellen Zustand VOR einer Änderung
 function createSnapshot() {
-    // Wir speichern eine tiefe Kopie von beiden Listen und der ID
     const snapshot = {
         shifts: JSON.parse(JSON.stringify(state.shifts)),
         deletedShifts: JSON.parse(JSON.stringify(state.deletedShifts)),
         activeShiftId: state.activeShiftId
     };
     state.undoStack.push(snapshot);
-    // Begrenzen auf 1 Schritt (oder mehr, wenn gewünscht)
     if (state.undoStack.length > 1) state.undoStack.shift(); 
 }
 
@@ -53,7 +50,6 @@ export function performUndo() {
     
     const snapshot = state.undoStack.pop();
     
-    // Zustand wiederherstellen
     state.shifts = snapshot.shifts;
     state.deletedShifts = snapshot.deletedShifts;
     state.activeShiftId = snapshot.activeShiftId;
@@ -95,7 +91,7 @@ export function clearData() {
         state.shifts = []; 
         state.deletedShifts = []; 
         state.activeShiftId = null; 
-        state.undoStack = []; // Stack leeren
+        state.undoStack = []; 
         saveData(); 
         updateUI(); 
     }
@@ -105,7 +101,6 @@ export function clearData() {
 
 export function initiateEditBlock(id) {
     resetDeleteUI();
-    // Split UI verstecken
     document.getElementById('split-ui').classList.add('hidden');
     document.getElementById('btn-show-split').classList.remove('hidden');
 
@@ -128,8 +123,8 @@ export function saveEdit() {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    // Snapshot vor Änderung? Wenn gewünscht.
-    // createSnapshot(); // Hier optional, meistens erwartet man Undo nur bei Löschen.
+    // Snapshot vor Änderung? (Optional, hier deaktiviert um Speicher zu sparen)
+    // createSnapshot(); 
 
     const baseDateStart = new Date(state.shifts[blockIndex].start);
     const newStart = setTime(baseDateStart, startInput);
@@ -161,9 +156,8 @@ export function showSplitUI() {
     const block = state.shifts.find(s => s.id === id);
     if (!block) return;
 
-    // Berechne Mitte
     const start = new Date(block.start);
-    const end = block.end ? new Date(block.end) : new Date(); // Wenn läuft, nimm Jetzt
+    const end = block.end ? new Date(block.end) : new Date(); 
     const midMillis = (start.getTime() + end.getTime()) / 2;
     const midDate = new Date(midMillis);
 
@@ -186,7 +180,6 @@ export function executeSplit() {
     const baseDate = new Date(block.start);
     const splitDate = setTime(baseDate, splitTimeInput);
 
-    // Validierung: Split muss zwischen Start und Ende liegen
     const start = new Date(block.start);
     const end = block.end ? new Date(block.end) : new Date();
     
@@ -195,25 +188,19 @@ export function executeSplit() {
         return;
     }
 
-    // 1. Neuer Block (Rechter Teil)
-    // Erbt Typ und Ende vom Original
     const newBlock = {
-        id: Date.now(), // Neue ID
+        id: Date.now(), 
         type: block.type,
         start: splitDate.toISOString(),
-        end: block.end // Kann null sein wenn aktiv
+        end: block.end 
     };
 
-    // 2. Alter Block (Linker Teil)
-    // Ende wird auf Split-Zeit gesetzt
     block.end = splitDate.toISOString();
 
-    // Wenn der alte Block aktiv war, ist jetzt der neue Block aktiv
     if (state.activeShiftId === block.id) {
         state.activeShiftId = newBlock.id;
     }
 
-    // Neuer Block wird direkt nach dem alten eingefügt
     state.shifts.splice(blockIndex + 1, 0, newBlock);
 
     saveData();
@@ -223,6 +210,55 @@ export function executeSplit() {
 }
 
 // --- DELETE LOGIC ---
+
+// HIER WAR DEIN FEHLER: Diese Funktion fehlte!
+export function initiateDelete() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    const blockIndex = state.shifts.findIndex(s => s.id === id);
+    if (blockIndex === -1) return;
+    
+    const block = state.shifts[blockIndex];
+    const isCurrent = (block.id === state.activeShiftId);
+    
+    // Fall A: Aktueller Block
+    if (isCurrent) {
+        const now = new Date();
+        const start = new Date(block.start);
+        const durationMins = (now - start) / 60000;
+        
+        // Konstante muss importiert sein oder hardcoded (hier hardcoded 5 für Einfachheit)
+        if (durationMins < 5) {
+            executeDelete('undo-current');
+        } else {
+            if (confirm("Der Block läuft schon länger als 5 Minuten.\nMöchtest du den vorherigen Block wieder aufnehmen?")) {
+                executeDelete('undo-current');
+            } else {
+                executeDelete('none');
+            }
+        }
+        return;
+    }
+
+    // Fall B: Vergangener Block
+    document.getElementById('edit-form').classList.add('hidden');
+    document.getElementById('delete-options').classList.remove('hidden');
+
+    const mergeBtn = document.getElementById('btn-gap-merge');
+    const prevBtn = document.getElementById('btn-gap-prev');
+    const nextBtn = document.getElementById('btn-gap-next');
+
+    const prevBlock = state.shifts[blockIndex - 1];
+    const nextBlock = state.shifts[blockIndex + 1];
+
+    if (prevBlock && nextBlock && prevBlock.type === nextBlock.type) {
+        mergeBtn.classList.remove('hidden'); 
+    } else {
+        mergeBtn.classList.add('hidden');
+    }
+
+    if (prevBlock) prevBtn.style.display = 'flex'; else prevBtn.style.display = 'none';
+    if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
+}
 
 function softDelete(blockIndex) {
     const block = state.shifts[blockIndex];
@@ -278,6 +314,5 @@ export function executeDelete(strategy) {
     closeModal();
     updateTimerDisplay();
     
-    // Toast anzeigen
     showUndoToast();
 }
