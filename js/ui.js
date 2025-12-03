@@ -133,7 +133,7 @@ export function showUndoToast() {
     toast.classList.remove('hidden');
     setTimeout(() => {
         hideUndoToast();
-    }, 5000);
+    }, 30000);
 }
 
 export function hideUndoToast() {
