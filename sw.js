@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schicht-pwa-v19';
+const CACHE_NAME = 'schicht-pwa-v20';
 const ASSETS = [
   './',
   './index.html',
@@ -42,3 +42,4 @@ self.addEventListener('fetch', (e) => {
     caches.match(e.request).then((response) => response || fetch(e.request))
   );
 });
+
