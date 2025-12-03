@@ -49,6 +49,7 @@ export async function handleCloudUpload() {
     try {
         let realDbUrl = localStorage.getItem('real_db_url');
         
+        // Gatekeeper Check
         if (!realDbUrl || localStorage.getItem('cloud_pw') !== pw) {
             const gateResponse = await fetch(CONFIG.GATEKEEPER_URL, {
                 method: "POST",
@@ -65,7 +66,6 @@ export async function handleCloudUpload() {
 
         btn.innerText = "Sende Daten...";
         
-        // Helper zum Formatieren
         const formatShift = (s) => {
             const start = new Date(s.start);
             const end = s.end ? new Date(s.end) : null;
@@ -77,8 +77,7 @@ export async function handleCloudUpload() {
                 startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
                 duration: duration,
-                // UPDATE: Hier senden wir den Lösch-Grund mit!
-                deleteStatus: s.deleteStatus // undefined bei aktiven, String bei gelöschten
+                deleteStatus: s.deleteStatus
             };
         };
 
@@ -88,17 +87,35 @@ export async function handleCloudUpload() {
             deleted: state.deletedShifts.map(formatShift)
         };
 
-        await fetch(realDbUrl, {
+        // DB Upload mit Antwort-Verarbeitung
+        const dbResponse = await fetch(realDbUrl, {
             method: "POST",
+            // WICHTIG: Kein 'no-cors', damit wir die Antwort lesen können!
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
-        
-        alert("Erfolg! Daten übertragen.");
-        closeCloudModal();
+
+        if (!dbResponse.ok) {
+            throw new Error(`Server Fehler: ${dbResponse.status}`);
+        }
+
+        const dbResult = await dbResponse.json();
+
+        if (dbResult.result === "success") {
+            // HIER IST DIE PROZENTGENAUE MELDUNG:
+            const msg = `Erfolg!\n\nGesendet: ${dbResult.processed} Einträge\nNeue Versionen im Sheet: ${dbResult.new_versions_created}`;
+            alert(msg);
+            closeCloudModal();
+        } else {
+            throw new Error(dbResult.message || dbResult.error || "Unbekannter Fehler");
+        }
+
     } catch (e) {
+        console.error(e);
         alert("Fehler: " + e.message);
-        localStorage.removeItem('real_db_url');
+        if (e.message.includes("404") || e.message.includes("Gatekeeper")) {
+             localStorage.removeItem('real_db_url');
+        }
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
