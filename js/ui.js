@@ -1,6 +1,6 @@
 import { state, CONFIG } from './state.js';
 import { getDisplayLabel } from './utils.js';
-import { initiateEditBlock, executeDelete } from './logic.js';
+import { initiateEditBlock, executeDelete, performUndo, showSplitUI, executeSplit } from './logic.js';
 
 export function updateUI() {
     const list = document.getElementById('log-list');
@@ -128,6 +128,20 @@ export function resetDeleteUI() {
     document.getElementById('edit-form').classList.remove('hidden');
     document.getElementById('delete-options').classList.add('hidden');
     document.getElementById('btn-gap-merge').classList.add('hidden');
+}
+
+export function showUndoToast() {
+    const toast = document.getElementById('undo-toast');
+    toast.classList.remove('hidden');
+    
+    // Auto-Hide nach 5 Sekunden
+    setTimeout(() => {
+        hideUndoToast();
+    }, 5000);
+}
+
+export function hideUndoToast() {
+    document.getElementById('undo-toast').classList.add('hidden');
 }
 
 export function initiateDelete() {
