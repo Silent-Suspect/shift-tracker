@@ -36,7 +36,11 @@ export function exportData() {
 export async function handleCloudUpload() {
     const pw = document.getElementById('cloud-pw').value.trim();
     if (!pw) { alert("Bitte Code eingeben."); return; }
-    if (state.shifts.length === 0) { alert("Keine Daten zum Senden."); return; }
+    
+    // Wir senden auch, wenn nur gelöschte da sind!
+    if (state.shifts.length === 0 && state.deletedShifts.length === 0) { 
+        alert("Keine Daten zum Senden."); return; 
+    }
 
     const btn = document.getElementById('btn-save-cloud');
     const originalText = btn.innerText;
@@ -56,7 +60,7 @@ export async function handleCloudUpload() {
             const gateData = await gateResponse.json();
             
             if (gateData.result !== "success") {
-                throw new Error("Code abgelehnt! (Falsches Passwort?)");
+                throw new Error("Code abgelehnt!");
             }
             realDbUrl = gateData.url;
             localStorage.setItem('real_db_url', realDbUrl);
@@ -64,21 +68,27 @@ export async function handleCloudUpload() {
         }
 
         btn.innerText = "Sende Daten...";
+        
+        // Helper zum Formatieren
+        const formatShift = (s) => {
+            const start = new Date(s.start);
+            const end = s.end ? new Date(s.end) : null;
+            let duration = 0;
+            if (end) duration = Math.floor((end - start) / 60000);
+            return {
+                id: s.id, type: s.type,
+                startDate: start.toLocaleDateString(),
+                startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
+                duration: duration
+            };
+        };
+
         const payload = {
             password: pw,
-            data: state.shifts.map(s => {
-                const start = new Date(s.start);
-                const end = s.end ? new Date(s.end) : null;
-                let duration = 0;
-                if (end) duration = Math.floor((end - start) / 60000);
-                return {
-                    id: s.id, type: s.type,
-                    startDate: start.toLocaleDateString(),
-                    startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
-                    duration: duration
-                };
-            })
+            // WIR SENDEN JETZT BEIDES!
+            data: state.shifts.map(formatShift),
+            deleted: state.deletedShifts.map(formatShift)
         };
 
         await fetch(realDbUrl, {
@@ -87,6 +97,7 @@ export async function handleCloudUpload() {
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
+        
         alert("Erfolg! Daten übertragen.");
         closeCloudModal();
     } catch (e) {
