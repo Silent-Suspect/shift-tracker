@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { loadData, migrateData, startBlock, stopCurrentBlock, saveEdit, executeDelete, clearData } from './logic.js';
+import { loadData, migrateData, startBlock, stopCurrentBlock, saveEdit, executeDelete, clearData, performUndo, showSplitUI, executeSplit } from './logic.js';
 import { updateUI, updateTimerDisplay, toggleHistory, closeModal, initiateDelete, resetDeleteUI } from './ui.js';
 import { openCloudModal, closeCloudModal, handleCloudUpload, exportData } from './cloud.js';
 
@@ -38,7 +38,6 @@ function initEventListeners() {
     document.getElementById('btn-save-edit').addEventListener('click', saveEdit);
     document.getElementById('btn-cancel-edit').addEventListener('click', closeModal);
     
-    // DELETE FLOW
     document.getElementById('btn-init-delete').addEventListener('click', initiateDelete);
     document.getElementById('btn-cancel-delete').addEventListener('click', resetDeleteUI);
     
@@ -46,6 +45,15 @@ function initEventListeners() {
     document.getElementById('btn-gap-prev').addEventListener('click', () => executeDelete('stretch-prev'));
     document.getElementById('btn-gap-next').addEventListener('click', () => executeDelete('pull-next'));
     document.getElementById('btn-gap-none').addEventListener('click', () => executeDelete('none'));
+
+    // NEU: Undo & Split Listener
+    document.getElementById('btn-undo').addEventListener('click', performUndo);
+    document.getElementById('btn-show-split').addEventListener('click', showSplitUI);
+    document.getElementById('btn-confirm-split').addEventListener('click', executeSplit);
+    document.getElementById('btn-cancel-split').addEventListener('click', () => {
+        document.getElementById('split-ui').classList.add('hidden');
+        document.getElementById('btn-show-split').classList.remove('hidden');
+    });
 }
 
 function updateConnectionStatus() {
