@@ -1,6 +1,6 @@
 import { state, CONFIG } from './state.js';
 import { getDisplayLabel } from './utils.js';
-// KEIN Import mehr von logic.js nötig!
+import { initiateEditBlock } from './logic.js'; 
 
 export function updateUI() {
     const list = document.getElementById('log-list');
@@ -18,6 +18,7 @@ export function updateUI() {
         if (block.end) {
             const diff = new Date(block.end) - new Date(block.start);
             if (diff < 0) isNegative = true;
+            
             const totalMins = Math.floor(Math.abs(diff) / 60000);
             const hrs = Math.floor(totalMins / 60);
             const mins = totalMins % 60;
@@ -38,6 +39,12 @@ export function updateUI() {
                 <button class="btn-edit" data-id="${block.id}">✏️</button>
             </div>
         `;
+        
+        div.querySelector('.btn-edit').addEventListener('click', (e) => {
+            const id = parseInt(e.target.dataset.id);
+            initiateEditBlock(id);
+        });
+
         list.appendChild(div);
 
         // SCHICHT-TRENNER
@@ -131,6 +138,8 @@ export function resetDeleteUI() {
 export function showUndoToast() {
     const toast = document.getElementById('undo-toast');
     toast.classList.remove('hidden');
+    
+    // UPDATE: 30 Sekunden Zeit zum Überlegen
     setTimeout(() => {
         hideUndoToast();
     }, 30000);
