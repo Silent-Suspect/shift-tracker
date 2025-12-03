@@ -1,7 +1,6 @@
 import { state, CONFIG } from './state.js';
 import { getDisplayLabel } from './utils.js';
-// WICHTIG: Wir importieren initiateEditBlock aus logic.js, um es an den Button zu hängen
-import { initiateEditBlock } from './logic.js'; 
+// KEIN Import mehr von logic.js nötig!
 
 export function updateUI() {
     const list = document.getElementById('log-list');
@@ -39,12 +38,6 @@ export function updateUI() {
                 <button class="btn-edit" data-id="${block.id}">✏️</button>
             </div>
         `;
-        
-        div.querySelector('.btn-edit').addEventListener('click', (e) => {
-            const id = parseInt(e.target.dataset.id);
-            initiateEditBlock(id);
-        });
-
         list.appendChild(div);
 
         // SCHICHT-TRENNER
@@ -129,7 +122,6 @@ export function resetDeleteUI() {
     document.getElementById('edit-form').classList.remove('hidden');
     document.getElementById('delete-options').classList.add('hidden');
     document.getElementById('btn-gap-merge').classList.add('hidden');
-    // Auch Split UI resetten
     const splitUi = document.getElementById('split-ui');
     if (splitUi) splitUi.classList.add('hidden');
     const splitBtn = document.getElementById('btn-show-split');
