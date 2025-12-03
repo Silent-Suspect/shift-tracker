@@ -1,7 +1,11 @@
 import { state } from './state.js';
-// initiateEditBlock importieren wir hier!
-import { loadData, migrateData, startBlock, stopCurrentBlock, saveEdit, executeDelete, clearData, performUndo, showSplitUI, executeSplit, initiateEditBlock } from './logic.js';
-import { updateUI, updateTimerDisplay, toggleHistory, closeModal, initiateDelete, resetDeleteUI } from './ui.js';
+
+// Logic Imports (Hier muss initiateDelete und initiateEditBlock rein!)
+import { loadData, migrateData, startBlock, stopCurrentBlock, saveEdit, executeDelete, clearData, performUndo, showSplitUI, executeSplit, initiateEditBlock, initiateDelete } from './logic.js';
+
+// UI Imports (Hier NUR UI Zeug, KEIN initiateDelete mehr!)
+import { updateUI, updateTimerDisplay, toggleHistory, closeModal, resetDeleteUI } from './ui.js';
+
 import { openCloudModal, closeCloudModal, handleCloudUpload, exportData } from './cloud.js';
 
 document.addEventListener('DOMContentLoaded', () => {
