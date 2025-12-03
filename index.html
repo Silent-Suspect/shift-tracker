@@ -8,7 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="assets/icon-192.png"> </head>
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+</head>
 <body>
 
     <div class="app-container">
@@ -71,7 +72,16 @@
                 <label>Endzeit:</label>
                 <input type="time" id="edit-end">
                 
-                <p class="hint">Folgezeiten passen sich automatisch an.</p>
+                <button id="btn-show-split" class="btn-split">✂️ Block teilen</button>
+
+                <div id="split-ui" class="hidden" style="margin-top:10px; background:#222; padding:10px; border-radius:8px;">
+                    <label style="margin-top:0">Teilen um:</label>
+                    <input type="time" id="split-time">
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button id="btn-confirm-split" class="btn-save" style="font-size:0.8rem">OK, Teilen</button>
+                        <button id="btn-cancel-split" class="btn-cancel" style="font-size:0.8rem">Abbruch</button>
+                    </div>
+                </div>
 
                 <div class="modal-actions">
                     <button id="btn-save-edit" class="btn-save">Speichern</button>
@@ -107,6 +117,11 @@
                 <button id="btn-cancel-cloud" class="btn-cancel">Abbrechen</button>
             </div>
         </div>
+    </div>
+
+    <div id="undo-toast" class="undo-toast hidden">
+        <span>Eintrag gelöscht.</span>
+        <button id="btn-undo">RÜCKGÄNGIG</button>
     </div>
 
     <script type="module" src="js/main.js"></script>
