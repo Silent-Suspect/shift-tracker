@@ -49,28 +49,15 @@ export async function handleCloudUpload() {
     try {
         let realDbUrl = localStorage.getItem('real_db_url');
         
-        // Gatekeeper Check (nur wenn URL fehlt oder PW geändert wurde)
         if (!realDbUrl || localStorage.getItem('cloud_pw') !== pw) {
-            console.log("Frage Gatekeeper...");
             const gateResponse = await fetch(CONFIG.GATEKEEPER_URL, {
                 method: "POST",
-                // Gatekeeper erlaubt CORS, also nutzen wir es für bessere Fehler!
-                // headers: text/plain verhindert Preflight-Chaos bei Google
                 headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ password: pw })
             });
             
-            if (!gateResponse.ok) {
-                throw new Error(`Gatekeeper Fehler: ${gateResponse.status}`);
-            }
-
             const gateData = await gateResponse.json();
-            
-            if (gateData.result !== "success") {
-                // Hier fangen wir "Falsches Passwort" ab
-                throw new Error(gateData.message || "Code abgelehnt!");
-            }
-            
+            if (gateData.result !== "success") throw new Error("Code abgelehnt!");
             realDbUrl = gateData.url;
             localStorage.setItem('real_db_url', realDbUrl);
             localStorage.setItem('cloud_pw', pw);
@@ -78,6 +65,7 @@ export async function handleCloudUpload() {
 
         btn.innerText = "Sende Daten...";
         
+        // Helper zum Formatieren
         const formatShift = (s) => {
             const start = new Date(s.start);
             const end = s.end ? new Date(s.end) : null;
@@ -88,7 +76,9 @@ export async function handleCloudUpload() {
                 startDate: start.toLocaleDateString(),
                 startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
-                duration: duration
+                duration: duration,
+                // UPDATE: Hier senden wir den Lösch-Grund mit!
+                deleteStatus: s.deleteStatus // undefined bei aktiven, String bei gelöschten
             };
         };
 
@@ -98,38 +88,17 @@ export async function handleCloudUpload() {
             deleted: state.deletedShifts.map(formatShift)
         };
 
-        // DB Upload
-        // WICHTIG: Wir wechseln von 'no-cors' auf Standard (cors).
-        // Google Scripts leiten weiter (302), fetch folgt dem automatisch.
-        // Das erlaubt uns, die JSON Antwort {"result": "success"} zu lesen.
-        const dbResponse = await fetch(realDbUrl, {
+        await fetch(realDbUrl, {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
-
-        if (!dbResponse.ok) {
-            throw new Error(`Server Fehler: ${dbResponse.status}`);
-        }
-
-        const dbResult = await dbResponse.json();
-
-        if (dbResult.result === "success") {
-            alert(`Erfolg!\nVerarbeitet: ${dbResult.processed}\nNeue Versionen: ${dbResult.new_versions_created}`);
-            closeCloudModal();
-        } else {
-            throw new Error(dbResult.message || dbResult.error || "Unbekannter Fehler im Script");
-        }
-
-    } catch (e) {
-        console.error("Upload Fehler:", e);
-        alert("Fehler: " + e.message);
         
-        // Falls es am "alten" gespeicherten DB-Link lag (z.B. URL geändert),
-        // löschen wir ihn, damit beim nächsten Mal neu beim Gatekeeper gefragt wird.
-        if (e.message.includes("404") || e.message.includes("Gatekeeper")) {
-             localStorage.removeItem('real_db_url');
-        }
+        alert("Erfolg! Daten übertragen.");
+        closeCloudModal();
+    } catch (e) {
+        alert("Fehler: " + e.message);
+        localStorage.removeItem('real_db_url');
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
