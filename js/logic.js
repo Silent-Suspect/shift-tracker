@@ -4,6 +4,8 @@ import { formatTimeForInput, setTime } from './utils.js';
 
 export function loadData() {
     const stored = localStorage.getItem('shift_data');
+    const storedDeleted = localStorage.getItem('deleted_shift_data');
+    
     if (stored) {
         try {
             state.shifts = JSON.parse(stored);
@@ -11,10 +13,17 @@ export function loadData() {
             if (active) state.activeShiftId = active.id;
         } catch (e) { state.shifts = []; }
     }
+    
+    // Gelöschte laden
+    if (storedDeleted) {
+        try { state.deletedShifts = JSON.parse(storedDeleted); } 
+        catch (e) { state.deletedShifts = []; }
+    }
 }
 
 export function saveData() {
     localStorage.setItem('shift_data', JSON.stringify(state.shifts));
+    localStorage.setItem('deleted_shift_data', JSON.stringify(state.deletedShifts));
 }
 
 export function migrateData() {
@@ -49,10 +58,16 @@ export function stopCurrentBlock(endTime = new Date()) {
 }
 
 export function clearData() {
-    if(confirm("Alles löschen?")) { 
+    if(confirm("Alles löschen? (Auch gespeicherte Passwörter)")) { 
         state.shifts = []; 
+        state.deletedShifts = []; // Friedhof leeren
         state.activeShiftId = null; 
         saveData(); 
+        
+        localStorage.removeItem('cloud_pw');
+        localStorage.removeItem('cloud_url');
+        localStorage.removeItem('real_db_url');
+        
         updateUI(); 
     }
 }
@@ -100,6 +115,13 @@ export function saveEdit() {
     updateUI();
 }
 
+// Helper: Verschiebt Block in den Friedhof
+function softDelete(blockIndex) {
+    const block = state.shifts[blockIndex];
+    state.deletedShifts.push(block);
+    state.shifts.splice(blockIndex, 1);
+}
+
 export function executeDelete(strategy) {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = state.shifts.findIndex(s => s.id === id);
@@ -110,7 +132,7 @@ export function executeDelete(strategy) {
     const nextBlock = state.shifts[blockIndex + 1];
 
     if (strategy === 'undo-current') {
-        state.shifts.splice(blockIndex, 1);
+        softDelete(blockIndex);
         state.activeShiftId = null;
         if (prevBlock) { prevBlock.end = null; state.activeShiftId = prevBlock.id; }
     } 
@@ -121,19 +143,26 @@ export function executeDelete(strategy) {
             prevBlock.end = null;
             state.activeShiftId = prevBlock.id;
         }
-        state.shifts.splice(blockIndex, 2);
+        
+        // Beim Mergen werden ZWEI Blöcke gelöscht (Mitte und Rechts)
+        // Wir suchen sie über ID, da sich Indizes verschieben
+        const nextId = nextBlock.id;
+        softDelete(blockIndex); // Mitte weg
+        
+        const nextIndexNew = state.shifts.findIndex(s => s.id === nextId);
+        if (nextIndexNew !== -1) softDelete(nextIndexNew); // Rechts weg
     }
     else if (strategy === 'stretch-prev' && prevBlock) {
         prevBlock.end = block.end;
-        state.shifts.splice(blockIndex, 1);
+        softDelete(blockIndex);
     } 
     else if (strategy === 'pull-next' && nextBlock) {
         nextBlock.start = block.start;
-        state.shifts.splice(blockIndex, 1);
+        softDelete(blockIndex);
     } 
     else {
         if (block.id === state.activeShiftId) state.activeShiftId = null;
-        state.shifts.splice(blockIndex, 1);
+        softDelete(blockIndex);
     }
 
     saveData();
