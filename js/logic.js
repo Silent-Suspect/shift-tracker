@@ -123,7 +123,7 @@ export function saveEdit() {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    // Snapshot vor Änderung? (Optional, hier deaktiviert um Speicher zu sparen)
+    // Optional: Snapshot bei Zeit-Änderung, falls gewünscht
     // createSnapshot(); 
 
     const baseDateStart = new Date(state.shifts[blockIndex].start);
@@ -174,7 +174,7 @@ export function executeSplit() {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    createSnapshot(); // Safety First!
+    createSnapshot();
 
     const block = state.shifts[blockIndex];
     const baseDate = new Date(block.start);
@@ -211,7 +211,6 @@ export function executeSplit() {
 
 // --- DELETE LOGIC ---
 
-// HIER WAR DEIN FEHLER: Diese Funktion fehlte!
 export function initiateDelete() {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = state.shifts.findIndex(s => s.id === id);
@@ -220,13 +219,12 @@ export function initiateDelete() {
     const block = state.shifts[blockIndex];
     const isCurrent = (block.id === state.activeShiftId);
     
-    // Fall A: Aktueller Block
     if (isCurrent) {
         const now = new Date();
         const start = new Date(block.start);
         const durationMins = (now - start) / 60000;
         
-        // Konstante muss importiert sein oder hardcoded (hier hardcoded 5 für Einfachheit)
+        // "Quick Undo" oder "Manual Delete" Status
         if (durationMins < 5) {
             executeDelete('undo-current');
         } else {
@@ -239,7 +237,6 @@ export function initiateDelete() {
         return;
     }
 
-    // Fall B: Vergangener Block
     document.getElementById('edit-form').classList.add('hidden');
     document.getElementById('delete-options').classList.remove('hidden');
 
@@ -260,8 +257,11 @@ export function initiateDelete() {
     if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
 }
 
-function softDelete(blockIndex) {
+// UPDATE: softDelete nimmt jetzt einen Grund entgegen
+function softDelete(blockIndex, reason = "GELÖSCHT") {
     const block = state.shifts[blockIndex];
+    // Wir hängen den Grund an das Objekt an
+    block.deleteStatus = reason;
     state.deletedShifts.push(block);
     state.shifts.splice(blockIndex, 1);
 }
@@ -271,14 +271,15 @@ export function executeDelete(strategy) {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    createSnapshot(); // WICHTIG: Zustand sichern
+    createSnapshot(); 
 
     const block = state.shifts[blockIndex];
     const prevBlock = state.shifts[blockIndex - 1];
     const nextBlock = state.shifts[blockIndex + 1];
 
     if (strategy === 'undo-current') {
-        softDelete(blockIndex);
+        // Aktuellen Block löschen (Status: GELÖSCHT, da manuell)
+        softDelete(blockIndex, "GELÖSCHT");
         state.activeShiftId = null;
         if (prevBlock) { prevBlock.end = null; state.activeShiftId = prevBlock.id; }
     } 
@@ -291,22 +292,26 @@ export function executeDelete(strategy) {
         }
         
         const nextId = nextBlock.id;
-        softDelete(blockIndex); 
+        
+        // HIER: Status VERSCHMOLZEN setzen
+        softDelete(blockIndex, "VERSCHMOLZEN"); 
         
         const nextIndexNew = state.shifts.findIndex(s => s.id === nextId);
-        if (nextIndexNew !== -1) softDelete(nextIndexNew); 
+        if (nextIndexNew !== -1) softDelete(nextIndexNew, "VERSCHMOLZEN"); 
     }
     else if (strategy === 'stretch-prev' && prevBlock) {
         prevBlock.end = block.end;
-        softDelete(blockIndex);
+        // Auch beim Lücke füllen ist es quasi ein Merge
+        softDelete(blockIndex, "VERSCHMOLZEN");
     } 
     else if (strategy === 'pull-next' && nextBlock) {
         nextBlock.start = block.start;
-        softDelete(blockIndex);
+        softDelete(blockIndex, "VERSCHMOLZEN");
     } 
     else {
+        // Normales Löschen (Lücke lassen)
         if (block.id === state.activeShiftId) state.activeShiftId = null;
-        softDelete(blockIndex);
+        softDelete(blockIndex, "GELÖSCHT");
     }
 
     saveData();
