@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { updateUI, updateTimerDisplay, closeModal, resetDeleteUI } from './ui.js';
+import { updateUI, updateTimerDisplay, closeModal, resetDeleteUI, showUndoToast, hideUndoToast } from './ui.js';
 import { formatTimeForInput, setTime } from './utils.js';
 
 export function loadData() {
@@ -14,7 +14,6 @@ export function loadData() {
         } catch (e) { state.shifts = []; }
     }
     
-    // Gelöschte laden
     if (storedDeleted) {
         try { state.deletedShifts = JSON.parse(storedDeleted); } 
         catch (e) { state.deletedShifts = []; }
@@ -33,6 +32,40 @@ export function migrateData() {
     });
     if (changed) saveData();
 }
+
+// --- SNAPSHOT & UNDO SYSTEM ---
+
+// Speichert den aktuellen Zustand VOR einer Änderung
+function createSnapshot() {
+    // Wir speichern eine tiefe Kopie von beiden Listen und der ID
+    const snapshot = {
+        shifts: JSON.parse(JSON.stringify(state.shifts)),
+        deletedShifts: JSON.parse(JSON.stringify(state.deletedShifts)),
+        activeShiftId: state.activeShiftId
+    };
+    state.undoStack.push(snapshot);
+    // Begrenzen auf 1 Schritt (oder mehr, wenn gewünscht)
+    if (state.undoStack.length > 1) state.undoStack.shift(); 
+}
+
+export function performUndo() {
+    if (state.undoStack.length === 0) return;
+    
+    const snapshot = state.undoStack.pop();
+    
+    // Zustand wiederherstellen
+    state.shifts = snapshot.shifts;
+    state.deletedShifts = snapshot.deletedShifts;
+    state.activeShiftId = snapshot.activeShiftId;
+    
+    saveData();
+    updateUI();
+    updateTimerDisplay();
+    hideUndoToast();
+    alert("Letzte Aktion rückgängig gemacht.");
+}
+
+// --- CORE ACTIONS ---
 
 export function startBlock(type) {
     const now = new Date();
@@ -57,26 +90,28 @@ export function stopCurrentBlock(endTime = new Date()) {
     updateUI();
 }
 
-// UPDATE: Reset löscht nur noch Daten, keine Einstellungen
 export function clearData() {
     if(confirm("Alle Schichtdaten löschen? (Passwort & Verbindung bleiben erhalten)")) { 
         state.shifts = []; 
         state.deletedShifts = []; 
         state.activeShiftId = null; 
+        state.undoStack = []; // Stack leeren
         saveData(); 
-        
-        // HIER WURDE GELÖSCHT: Wir behalten cloud_pw und real_db_url
-        // localStorage.removeItem('cloud_pw'); ...
-        
         updateUI(); 
     }
 }
 
-// Edit & Delete Logik
+// --- EDIT LOGIC ---
+
 export function initiateEditBlock(id) {
     resetDeleteUI();
+    // Split UI verstecken
+    document.getElementById('split-ui').classList.add('hidden');
+    document.getElementById('btn-show-split').classList.remove('hidden');
+
     const block = state.shifts.find(s => s.id === id);
     if (!block) return;
+    
     document.getElementById('edit-id').value = id;
     document.getElementById('edit-type').value = block.type;
     document.getElementById('edit-start').value = formatTimeForInput(block.start);
@@ -89,8 +124,12 @@ export function saveEdit() {
     const type = document.getElementById('edit-type').value;
     const startInput = document.getElementById('edit-start').value; 
     const endInput = document.getElementById('edit-end').value; 
+    
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
+
+    // Snapshot vor Änderung? Wenn gewünscht.
+    // createSnapshot(); // Hier optional, meistens erwartet man Undo nur bei Löschen.
 
     const baseDateStart = new Date(state.shifts[blockIndex].start);
     const newStart = setTime(baseDateStart, startInput);
@@ -115,6 +154,76 @@ export function saveEdit() {
     updateUI();
 }
 
+// --- SPLIT LOGIC ---
+
+export function showSplitUI() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    const block = state.shifts.find(s => s.id === id);
+    if (!block) return;
+
+    // Berechne Mitte
+    const start = new Date(block.start);
+    const end = block.end ? new Date(block.end) : new Date(); // Wenn läuft, nimm Jetzt
+    const midMillis = (start.getTime() + end.getTime()) / 2;
+    const midDate = new Date(midMillis);
+
+    document.getElementById('split-time').value = formatTimeForInput(midDate.toISOString());
+    
+    document.getElementById('btn-show-split').classList.add('hidden');
+    document.getElementById('split-ui').classList.remove('hidden');
+}
+
+export function executeSplit() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    const splitTimeInput = document.getElementById('split-time').value;
+    
+    const blockIndex = state.shifts.findIndex(s => s.id === id);
+    if (blockIndex === -1) return;
+
+    createSnapshot(); // Safety First!
+
+    const block = state.shifts[blockIndex];
+    const baseDate = new Date(block.start);
+    const splitDate = setTime(baseDate, splitTimeInput);
+
+    // Validierung: Split muss zwischen Start und Ende liegen
+    const start = new Date(block.start);
+    const end = block.end ? new Date(block.end) : new Date();
+    
+    if (splitDate <= start || splitDate >= end) {
+        alert("Zeitpunkt muss innerhalb des Blocks liegen.");
+        return;
+    }
+
+    // 1. Neuer Block (Rechter Teil)
+    // Erbt Typ und Ende vom Original
+    const newBlock = {
+        id: Date.now(), // Neue ID
+        type: block.type,
+        start: splitDate.toISOString(),
+        end: block.end // Kann null sein wenn aktiv
+    };
+
+    // 2. Alter Block (Linker Teil)
+    // Ende wird auf Split-Zeit gesetzt
+    block.end = splitDate.toISOString();
+
+    // Wenn der alte Block aktiv war, ist jetzt der neue Block aktiv
+    if (state.activeShiftId === block.id) {
+        state.activeShiftId = newBlock.id;
+    }
+
+    // Neuer Block wird direkt nach dem alten eingefügt
+    state.shifts.splice(blockIndex + 1, 0, newBlock);
+
+    saveData();
+    updateUI();
+    closeModal();
+    updateTimerDisplay();
+}
+
+// --- DELETE LOGIC ---
+
 function softDelete(blockIndex) {
     const block = state.shifts[blockIndex];
     state.deletedShifts.push(block);
@@ -125,6 +234,8 @@ export function executeDelete(strategy) {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
+
+    createSnapshot(); // WICHTIG: Zustand sichern
 
     const block = state.shifts[blockIndex];
     const prevBlock = state.shifts[blockIndex - 1];
@@ -166,4 +277,7 @@ export function executeDelete(strategy) {
     updateUI();
     closeModal();
     updateTimerDisplay();
+    
+    // Toast anzeigen
+    showUndoToast();
 }
