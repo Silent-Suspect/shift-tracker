@@ -10,7 +10,7 @@ const AUTO_RESUME_THRESHOLD_MINUTES = 5;
 
 // ---------------------------------------------------------
 // HIER DEINE URL EINTRAGEN:
-const GATEKEEPER_URL = "https://script.google.com/macros/s/AKfycbxSjCl4LOJpjhl9MuDxOP9TLupsa7-HFHRJvL11PNxx_AXUhSYosOiLYko2XCpVHw/exec";
+const GATEKEEPER_URL = "https://script.google.com/macros/s/AKfycbxuFGO7ZMNp2LQlFFOgmFXvZoeTrUA8xg8fxHu_LTlG8GRSZH8yqwcjMj8Iuk7hp-4/exec";
 // ---------------------------------------------------------
 
 // Initialisierung
@@ -481,4 +481,5 @@ function updateTimerDisplay() {
         typeEl.classList.remove('status-success');
     }
 }
+
 
