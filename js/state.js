@@ -10,5 +10,5 @@ export const CONFIG = {
     SHIFT_GAP_THRESHOLD_HOURS: 6,
     AUTO_RESUME_THRESHOLD_MINUTES: 5,
     // DEINE URL:
-    GATEKEEPER_URL: "https://script.google.com/macros/s/AKfycbxSjCl4LOJpjhl9MuDxOP9TLupsa7-HFHRJvL11PNxx_AXUhSYosOiLYko2XCpVHw/exec"
+    GATEKEEPER_URL: "https://script.google.com/macros/s/AKfycbxuFGO7ZMNp2LQlFFOgmFXvZoeTrUA8xg8fxHu_LTlG8GRSZH8yqwcjMj8Iuk7hp-4/exec"
 };
