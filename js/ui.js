@@ -1,6 +1,7 @@
 import { state, CONFIG } from './state.js';
 import { getDisplayLabel } from './utils.js';
-import { initiateEditBlock, executeDelete, performUndo, showSplitUI, executeSplit } from './logic.js';
+// WICHTIG: Wir importieren initiateEditBlock aus logic.js, um es an den Button zu hängen
+import { initiateEditBlock } from './logic.js'; 
 
 export function updateUI() {
     const list = document.getElementById('log-list');
@@ -14,6 +15,7 @@ export function updateUI() {
         
         let durationStr = "";
         let isNegative = false;
+        
         if (block.end) {
             const diff = new Date(block.end) - new Date(block.start);
             if (diff < 0) isNegative = true;
@@ -38,7 +40,6 @@ export function updateUI() {
             </div>
         `;
         
-        // Event Listener für den dynamischen Button direkt hier anhängen
         div.querySelector('.btn-edit').addEventListener('click', (e) => {
             const id = parseInt(e.target.dataset.id);
             initiateEditBlock(id);
@@ -128,13 +129,16 @@ export function resetDeleteUI() {
     document.getElementById('edit-form').classList.remove('hidden');
     document.getElementById('delete-options').classList.add('hidden');
     document.getElementById('btn-gap-merge').classList.add('hidden');
+    // Auch Split UI resetten
+    const splitUi = document.getElementById('split-ui');
+    if (splitUi) splitUi.classList.add('hidden');
+    const splitBtn = document.getElementById('btn-show-split');
+    if (splitBtn) splitBtn.classList.remove('hidden');
 }
 
 export function showUndoToast() {
     const toast = document.getElementById('undo-toast');
     toast.classList.remove('hidden');
-    
-    // Auto-Hide nach 5 Sekunden
     setTimeout(() => {
         hideUndoToast();
     }, 5000);
@@ -142,48 +146,4 @@ export function showUndoToast() {
 
 export function hideUndoToast() {
     document.getElementById('undo-toast').classList.add('hidden');
-}
-
-export function initiateDelete() {
-    const id = parseInt(document.getElementById('edit-id').value);
-    const blockIndex = state.shifts.findIndex(s => s.id === id);
-    if (blockIndex === -1) return;
-    
-    const block = state.shifts[blockIndex];
-    const isCurrent = (block.id === state.activeShiftId);
-    
-    if (isCurrent) {
-        const now = new Date();
-        const start = new Date(block.start);
-        const durationMins = (now - start) / 60000;
-        if (durationMins < CONFIG.AUTO_RESUME_THRESHOLD_MINUTES) {
-            executeDelete('undo-current');
-        } else {
-            if (confirm("Der Block läuft schon länger als 5 Minuten.\nMöchtest du den vorherigen Block wieder aufnehmen?")) {
-                executeDelete('undo-current');
-            } else {
-                executeDelete('none');
-            }
-        }
-        return;
-    }
-
-    document.getElementById('edit-form').classList.add('hidden');
-    document.getElementById('delete-options').classList.remove('hidden');
-
-    const mergeBtn = document.getElementById('btn-gap-merge');
-    const prevBtn = document.getElementById('btn-gap-prev');
-    const nextBtn = document.getElementById('btn-gap-next');
-
-    const prevBlock = state.shifts[blockIndex - 1];
-    const nextBlock = state.shifts[blockIndex + 1];
-
-    if (prevBlock && nextBlock && prevBlock.type === nextBlock.type) {
-        mergeBtn.classList.remove('hidden'); 
-    } else {
-        mergeBtn.classList.add('hidden');
-    }
-
-    if (prevBlock) prevBtn.style.display = 'flex'; else prevBtn.style.display = 'none';
-    if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
 }
