@@ -123,9 +123,6 @@ export function saveEdit() {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    // Optional: Snapshot bei Zeit-Änderung, falls gewünscht
-    // createSnapshot(); 
-
     const baseDateStart = new Date(state.shifts[blockIndex].start);
     const newStart = setTime(baseDateStart, startInput);
     let newEnd = null;
@@ -224,7 +221,6 @@ export function initiateDelete() {
         const start = new Date(block.start);
         const durationMins = (now - start) / 60000;
         
-        // "Quick Undo" oder "Manual Delete" Status
         if (durationMins < 5) {
             executeDelete('undo-current');
         } else {
@@ -257,11 +253,10 @@ export function initiateDelete() {
     if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
 }
 
-// UPDATE: softDelete nimmt jetzt einen Grund entgegen
+// UPDATE: Grund wird gespeichert
 function softDelete(blockIndex, reason = "GELÖSCHT") {
     const block = state.shifts[blockIndex];
-    // Wir hängen den Grund an das Objekt an
-    block.deleteStatus = reason;
+    block.deleteStatus = reason; // <-- Hier wird der Stempel aufgedrückt!
     state.deletedShifts.push(block);
     state.shifts.splice(blockIndex, 1);
 }
@@ -271,14 +266,13 @@ export function executeDelete(strategy) {
     const blockIndex = state.shifts.findIndex(s => s.id === id);
     if (blockIndex === -1) return;
 
-    createSnapshot(); 
+    createSnapshot();
 
     const block = state.shifts[blockIndex];
     const prevBlock = state.shifts[blockIndex - 1];
     const nextBlock = state.shifts[blockIndex + 1];
 
     if (strategy === 'undo-current') {
-        // Aktuellen Block löschen (Status: GELÖSCHT, da manuell)
         softDelete(blockIndex, "GELÖSCHT");
         state.activeShiftId = null;
         if (prevBlock) { prevBlock.end = null; state.activeShiftId = prevBlock.id; }
@@ -293,7 +287,7 @@ export function executeDelete(strategy) {
         
         const nextId = nextBlock.id;
         
-        // HIER: Status VERSCHMOLZEN setzen
+        // HIER WIRD ES GETRIGGERT:
         softDelete(blockIndex, "VERSCHMOLZEN"); 
         
         const nextIndexNew = state.shifts.findIndex(s => s.id === nextId);
@@ -301,7 +295,6 @@ export function executeDelete(strategy) {
     }
     else if (strategy === 'stretch-prev' && prevBlock) {
         prevBlock.end = block.end;
-        // Auch beim Lücke füllen ist es quasi ein Merge
         softDelete(blockIndex, "VERSCHMOLZEN");
     } 
     else if (strategy === 'pull-next' && nextBlock) {
@@ -309,7 +302,6 @@ export function executeDelete(strategy) {
         softDelete(blockIndex, "VERSCHMOLZEN");
     } 
     else {
-        // Normales Löschen (Lücke lassen)
         if (block.id === state.activeShiftId) state.activeShiftId = null;
         softDelete(blockIndex, "GELÖSCHT");
     }
