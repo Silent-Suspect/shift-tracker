@@ -6,7 +6,7 @@ export function getDisplayLabel(type) {
         // Pfade angepasst auf assets/
         case 'Übergang': return '<img src="assets/transit-icon.png" class="custom-icon" alt=""> Übergang';
         case 'Gastfahrt': return '<img src="assets/taxi-icon.png" class="custom-icon" alt=""> Gastfahrt';
-        case 'An-/Abreise': return '🚗 An-/Abreise';
+        case 'An-/Abreise': return '<img src="assets/travel-icon.png" class="custom-icon" alt=""> An-/Abreise';
         default: return type;
     }
 }
