@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schicht-pwa-v29'; // <--- Version 29!
+const CACHE_NAME = 'schicht-pwa-v30'; // <--- Version 30!
 const ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,6 @@ const ASSETS = [
   './assets/transit-icon.png',
   './assets/taxi-icon.png',
   './assets/travel-icon.png',
-  // NEU: Die App Icons
   './assets/icon-192.png',
   './assets/icon-512.png'
 ];
