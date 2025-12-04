@@ -9,14 +9,22 @@ export function updateUI() {
 
     displayShifts.forEach((block, index) => {
         const start = new Date(block.start);
-        const end = block.end ? new Date(block.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'läuft...';
+        const end = block.end ? new Date(block.end) : null;
+        
         const startTime = start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        let endTimeDisplay = 'läuft...';
         
         let durationStr = "";
         let isNegative = false;
         
-        if (block.end) {
-            const diff = new Date(block.end) - new Date(block.start);
+        if (end) {
+            // Check auf Tageswechsel
+            const isNextDay = end.getDate() !== start.getDate() || end.getMonth() !== start.getMonth();
+            const timeStr = end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            // Wenn neuer Tag, hängen wir (+1) an
+            endTimeDisplay = isNextDay ? `${timeStr} (+1)` : timeStr;
+
+            const diff = end - start;
             if (diff < 0) isNegative = true;
             
             const totalMins = Math.floor(Math.abs(diff) / 60000);
@@ -33,7 +41,7 @@ export function updateUI() {
         const displayLabel = getDisplayLabel(block.type);
 
         div.innerHTML = `
-            <div><strong>${displayLabel}</strong><br><span class="log-time">${startTime} - ${end}</span></div>
+            <div><strong>${displayLabel}</strong><br><span class="log-time">${startTime} - ${endTimeDisplay}</span></div>
             <div style="text-align:right">
                 <span class="log-details" style="${isNegative ? 'color:red' : ''}">${durationStr}</span><br>
                 <button class="btn-edit" data-id="${block.id}">✏️</button>
@@ -93,7 +101,6 @@ export function updateTimerDisplay() {
     
     const timerEl = document.getElementById('active-timer');
     const typeEl = document.getElementById('active-type');
-    
     timerEl.innerText = `${hh}:${mm}:${ss}`;
 
     if (block.type === 'Übergang') {
@@ -138,8 +145,6 @@ export function resetDeleteUI() {
 export function showUndoToast() {
     const toast = document.getElementById('undo-toast');
     toast.classList.remove('hidden');
-    
-    // UPDATE: 30 Sekunden Zeit zum Überlegen
     setTimeout(() => {
         hideUndoToast();
     }, 30000);
