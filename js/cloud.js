@@ -11,17 +11,25 @@ export function closeCloudModal() {
 }
 
 export function exportData() {
-    let csvContent = "data:text/csv;charset=utf-8,ID,Typ,StartDatum,StartZeit,EndeZeit,Dauer(Min)\n";
+    // CSV Header angepasst: Jetzt mit EndeDatum
+    let csvContent = "data:text/csv;charset=utf-8,ID,Typ,StartDatum,StartZeit,EndeDatum,EndeZeit,Dauer(Min)\n";
+    
     state.shifts.forEach(e => {
         const start = new Date(e.start);
         const end = e.end ? new Date(e.end) : null;
-        const dateStr = start.toLocaleDateString();
+        
+        const startDateStr = start.toLocaleDateString();
         const startTime = start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const endDateStr = end ? end.toLocaleDateString() : '';
         const endTime = end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT';
+        
         let duration = 0;
         if (end) duration = Math.floor((end - start) / 60000);
-        csvContent += `${e.id},${e.type},"${dateStr}",${startTime},${endTime},${duration}\n`;
+        
+        csvContent += `${e.id},${e.type},"${startDateStr}",${startTime},"${endDateStr}",${endTime},${duration}\n`;
     });
+    
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -29,6 +37,7 @@ export function exportData() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
     const rawCSV = csvContent.replace("data:text/csv;charset=utf-8,", "");
     navigator.clipboard.writeText(rawCSV).then(() => { alert("Backup erstellt!"); });
 }
@@ -49,7 +58,6 @@ export async function handleCloudUpload() {
     try {
         let realDbUrl = localStorage.getItem('real_db_url');
         
-        // Gatekeeper Check
         if (!realDbUrl || localStorage.getItem('cloud_pw') !== pw) {
             const gateResponse = await fetch(CONFIG.GATEKEEPER_URL, {
                 method: "POST",
@@ -75,6 +83,8 @@ export async function handleCloudUpload() {
                 id: s.id, type: s.type,
                 startDate: start.toLocaleDateString(),
                 startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                // NEU: Ende Datum senden
+                endDate: end ? end.toLocaleDateString() : '',
                 endTime: end ? end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'LAEUFT',
                 duration: duration,
                 deleteStatus: s.deleteStatus
@@ -87,22 +97,17 @@ export async function handleCloudUpload() {
             deleted: state.deletedShifts.map(formatShift)
         };
 
-        // DB Upload mit Antwort-Verarbeitung
         const dbResponse = await fetch(realDbUrl, {
             method: "POST",
-            // WICHTIG: Kein 'no-cors', damit wir die Antwort lesen können!
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         });
 
-        if (!dbResponse.ok) {
-            throw new Error(`Server Fehler: ${dbResponse.status}`);
-        }
+        if (!dbResponse.ok) throw new Error(`Server Fehler: ${dbResponse.status}`);
 
         const dbResult = await dbResponse.json();
 
         if (dbResult.result === "success") {
-            // HIER IST DIE PROZENTGENAUE MELDUNG:
             const msg = `Erfolg!\n\nGesendet: ${dbResult.processed} Einträge\nNeue Versionen im Sheet: ${dbResult.new_versions_created}`;
             alert(msg);
             closeCloudModal();
