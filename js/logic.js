@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, CONFIG } from './state.js';
 import { updateUI, updateTimerDisplay, closeModal, resetDeleteUI, showUndoToast, hideUndoToast } from './ui.js';
 import { formatTimeForInput, setTime } from './utils.js';
 
@@ -33,7 +33,7 @@ export function migrateData() {
     if (changed) saveData();
 }
 
-// --- SNAPSHOT & UNDO SYSTEM ---
+// --- HELPERS (Internal) ---
 
 function createSnapshot() {
     const snapshot = {
@@ -44,6 +44,15 @@ function createSnapshot() {
     state.undoStack.push(snapshot);
     if (state.undoStack.length > 1) state.undoStack.shift(); 
 }
+
+function softDelete(blockIndex, reason = "GELÖSCHT") {
+    const block = state.shifts[blockIndex];
+    block.deleteStatus = reason; 
+    state.deletedShifts.push(block);
+    state.shifts.splice(blockIndex, 1);
+}
+
+// --- SNAPSHOT & UNDO SYSTEM ---
 
 export function performUndo() {
     if (state.undoStack.length === 0) return;
@@ -65,6 +74,47 @@ export function performUndo() {
 
 export function startBlock(type) {
     const now = new Date();
+
+    // ---------------------------------------------------------
+    // AUTO-MERGE CHECK (Warten -> Arbeit)
+    // ---------------------------------------------------------
+    if (type === 'Arbeit' && state.activeShiftId) {
+        const currentIndex = state.shifts.findIndex(s => s.id === state.activeShiftId);
+        const currentBlock = state.shifts[currentIndex];
+
+        if (currentBlock && currentBlock.type === 'Wartezeit') {
+            const durationMins = (now - new Date(currentBlock.start)) / 60000;
+            
+            // Bedingung: Warten < 20 Min
+            if (durationMins < CONFIG.AUTO_MERGE_WAIT_MINUTES) {
+                const prevBlock = state.shifts[currentIndex - 1];
+                
+                // Bedingung: Vorgänger war Arbeit
+                if (prevBlock && prevBlock.type === 'Arbeit') {
+                    // Wir führen den Merge durch
+                    createSnapshot(); 
+
+                    // 1. Warteblock löschen
+                    softDelete(currentIndex, `AUTO-MERGE (<${Math.ceil(durationMins)}m)`);
+
+                    // 2. Vorherige Arbeit wiederaufnehmen
+                    prevBlock.end = null;
+                    state.activeShiftId = prevBlock.id;
+
+                    saveData();
+                    updateUI();
+                    
+                    // Toast anzeigen, damit User weiß was passiert ist (bzw. Undo möglich ist)
+                    showUndoToast(); 
+                    
+                    // Wir brechen hier ab, damit KEIN neuer Block startet
+                    return; 
+                }
+            }
+        }
+    }
+    // ---------------------------------------------------------
+
     if (state.activeShiftId) {
         const currentBlock = state.shifts.find(s => s.id === state.activeShiftId);
         if (currentBlock && currentBlock.type === type) return; 
@@ -221,7 +271,7 @@ export function initiateDelete() {
         const start = new Date(block.start);
         const durationMins = (now - start) / 60000;
         
-        if (durationMins < 5) {
+        if (durationMins < CONFIG.AUTO_RESUME_THRESHOLD_MINUTES) {
             executeDelete('undo-current');
         } else {
             if (confirm("Der Block läuft schon länger als 5 Minuten.\nMöchtest du den vorherigen Block wieder aufnehmen?")) {
@@ -253,14 +303,6 @@ export function initiateDelete() {
     if (nextBlock) nextBtn.style.display = 'flex'; else nextBtn.style.display = 'none';
 }
 
-// UPDATE: Grund wird gespeichert
-function softDelete(blockIndex, reason = "GELÖSCHT") {
-    const block = state.shifts[blockIndex];
-    block.deleteStatus = reason; // <-- Hier wird der Stempel aufgedrückt!
-    state.deletedShifts.push(block);
-    state.shifts.splice(blockIndex, 1);
-}
-
 export function executeDelete(strategy) {
     const id = parseInt(document.getElementById('edit-id').value);
     const blockIndex = state.shifts.findIndex(s => s.id === id);
@@ -287,7 +329,6 @@ export function executeDelete(strategy) {
         
         const nextId = nextBlock.id;
         
-        // HIER WIRD ES GETRIGGERT:
         softDelete(blockIndex, "VERSCHMOLZEN"); 
         
         const nextIndexNew = state.shifts.findIndex(s => s.id === nextId);
